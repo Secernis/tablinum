@@ -4,15 +4,14 @@
  * Shared unlock-window mechanics for the per-surface protection gates.
  *
  * Each protected surface (rules, design, hooks, brand, configs) has its OWN
- * unlock flag under the gitignored hook state dir: `state/unlock-<scope>`. The
- * USER flips a scope's 30-minute window by running its dedicated helper script
- * (`tab-unlock-<scope>.cjs`) in their own terminal; agent-side attempts to
- * create or refresh any flag are denied by the `surface-protect` rule itself.
+ * unlock flag under the gitignored hook state dir: `state/unlock-<scope>`.
  * Windows are deliberately scoped: opening one surface never unlocks another.
  *
- * The helper {@link toggleWindow} is a TOGGLE, not a one-way open: a single run
- * opens a closed window and closes an open one, so the same command can be bound
- * to one key.
+ * This module owns WHERE a flag lives and HOW LONG it lasts, and answers what is
+ * currently open. It does not write flags: `scripts/unlock.mjs` does, because
+ * that command is the user's and belongs on their side of the fence. The agent
+ * is kept off it by the `unlock-channel` rule rather than by a request in a
+ * docblock — a guard the guarded party can lift is not a guard.
  */
 
 const fs = require("node:fs");
@@ -85,7 +84,8 @@ const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  * @param {string} [root] - Workspace root the flags live under.
  * @returns {Array<{scope: string, open: boolean, remainingMs: number, stale: boolean}>}
  *   One entry per scope in {@link SCOPES} order. `stale` marks a flag file that
- *   exists but whose TTL lapsed (an expired window, vs. one closed by toggle).
+ *   exists but whose TTL lapsed — a window that ran out, as distinct from one
+ *   that was closed on purpose and left no flag behind.
  */
 function windowStatus(root = repoRoot()) {
   const now = Date.now();
@@ -169,34 +169,6 @@ function writeWindowSnapshot(sessionKey, status, root = repoRoot()) {
   }
 }
 
-/**
- * Toggles a scope's unlock flag — called ONLY by the user-run helper scripts.
- * An open window is closed by removing the flag; a closed or stale one opens a
- * fresh 30-minute window.
- *
- * @param {string} scope - One of {@link SCOPES}.
- * @param {string} hooksDir - Absolute path of `.claude/hooks` (the helper's __dirname).
- * @returns {void}
- */
-function toggleWindow(scope, hooksDir) {
-  if (!SCOPES.includes(scope)) {
-    console.error(`[tab-unlock] unknown scope "${scope}" (valid: ${SCOPES.join(", ")}).`);
-    process.exit(1);
-  }
-  const flag = path.join(hooksDir, "state", `unlock-${scope}`);
-  if (flagFresh(flag)) {
-    fs.rmSync(flag, { force: true });
-    console.log(`[tab-unlock-${scope}] edit window closed (locked).`);
-    return;
-  }
-  fs.mkdirSync(path.dirname(flag), { recursive: true });
-  fs.writeFileSync(flag, new Date().toISOString());
-  const until = new Date(Date.now() + UNLOCK_TTL_MS);
-  console.log(
-    `[tab-unlock-${scope}] edit window open until ${until.toLocaleTimeString()} (30 min).`,
-  );
-}
-
 module.exports = {
   SCOPES,
   UNLOCK_TTL_MS,
@@ -205,7 +177,6 @@ module.exports = {
   formatWindowStatus,
   hasFreshUnlock,
   readWindowSnapshot,
-  toggleWindow,
   windowStatus,
   writeWindowSnapshot,
 };

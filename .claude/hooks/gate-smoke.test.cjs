@@ -65,8 +65,18 @@ const CASES = [
   ["python open .env", { tool_input: { command: `python -c "open('.env').read()"` }, tool_name: "Bash" }, true],
   ["cp .env.example .env", { tool_input: { command: "cp .env.example .env" }, tool_name: "Bash" }, false],
   ["Read tool on .env", { tool_input: { file_path: `${CWD}/.env` }, tool_name: "Read" }, true],
+  ["agent opens a window", { tool_input: { command: "npm run unlock -- hooks" }, tool_name: "Bash" }, true],
+  ["agent opens two windows", { tool_input: { command: "npm run unlock -- hooks,rules" }, tool_name: "Bash" }, true],
+  ["agent closes a window", { tool_input: { command: "npm run unlock -- --close all" }, tool_name: "Bash" }, true],
+  ["agent reads window state", { tool_input: { command: "npm run unlock" }, tool_name: "Bash" }, false],
+  ["agent forges a flag by redirect", { tool_input: { command: "echo x > .claude/hooks/state/unlock-hooks" }, tool_name: "Bash" }, true],
+  ["agent forges a flag by touch", { tool_input: { command: "touch .claude/hooks/state/unlock-rules" }, tool_name: "Bash" }, true],
+  ["agent removes a flag", { tool_input: { command: "rm .claude/hooks/state/unlock-brand" }, tool_name: "Bash" }, true],
   ["raw git commit", { tool_input: { command: 'git commit -m "x"' }, tool_name: "Bash" }, true],
   ["commit with -A", { tool_input: { command: 'npm run commit -- -A --type chore --message "x"' }, tool_name: "Bash" }, true],
+  // `--all` belongs to verify here, not to the commit. Testing the whole command
+  // line instead of the commit segment refused this.
+  ["verify --all then commit", { tool_input: { command: "npm run verify -- --all && npm run commit -- --inspect" }, tool_name: "Bash" }, false],
   ["commit with --all", { tool_input: { command: 'npm run commit -- --all --type chore --message "x"' }, tool_name: "Bash" }, true],
   // Pins the 2026-08-22 rollback: naming paths the edit tracker never saw is
   // NOT a block any more. The tracker cannot see a script's writes, so it called

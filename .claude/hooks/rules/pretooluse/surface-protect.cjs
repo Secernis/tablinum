@@ -15,7 +15,7 @@
  * The protection is not absolute — it is a per-surface window the USER opens
  * from their own terminal:
  *
- *   node .claude/hooks/tab-unlock-rules.cjs      # 30 minutes, toggles
+ *   npm run unlock -- rules            # 30 minutes; several at once is one command
  *
  * Windows are scoped: opening `design` never unlocks `hooks`. And the state
  * directory itself stays write-denied even inside a window, because a rule that
@@ -108,9 +108,10 @@ function run(data) {
   const reopen = surface.hard
     ? "There is no unlock window for this path — edit it yourself, outside the agent session."
     : `The user can open a 30-minute window from their own terminal:\n` +
-      `  node .claude/hooks/tab-unlock-${surface.scope}.cjs\n` +
-      `Ask for it and say what you want to change and why. Do not run that command yourself — ` +
-      `an agent-side unlock is the same as no lock.`;
+      `  npm run unlock -- ${surface.scope}\n` +
+      `Several at once is one command: \`npm run unlock -- ${surface.scope} rules\`.\n` +
+      `Ask for it and say what you want to change and why. Running it yourself is refused ` +
+      `(\`unlock-channel\`) — an agent-side unlock is the same as no lock.`;
 
   return deny(
     "tab-guard",

@@ -56,16 +56,26 @@ also writes the number into three other files.
 Five surfaces are closed to agent edits. The user opens a 30-minute window from
 their own terminal:
 
-| Surface | What it covers | Unlock |
-| --- | --- | --- |
-| `rules` | `CLAUDE.md`, `.claude/rules/**` | `node .claude/hooks/tab-unlock-rules.cjs` |
-| `design` | `DESIGN.md` | `node .claude/hooks/tab-unlock-design.cjs` |
-| `hooks` | `.claude/hooks/**` | `node .claude/hooks/tab-unlock-hooks.cjs` |
-| `brand` | `src/lib/brand/`, `src/brand.css`, `public/`, `src-tauri/icons/` | `node .claude/hooks/tab-unlock-brand.cjs` |
-| `configs` | tsconfig, vite/tauri config, capabilities, settings | `node .claude/hooks/tab-unlock-configs.cjs` |
+```
+npm run unlock -- hooks rules      open both
+npm run unlock -- all              open everything
+npm run unlock -- --close hooks    close one
+npm run unlock                     what is open right now
+```
 
-Ask for the window and say what you want to change and why. Running the unlock
-yourself is the same as there being no lock.
+| Surface | What it covers |
+| --- | --- |
+| `rules` | `CLAUDE.md`, `.claude/rules/**` |
+| `design` | `DESIGN.md` |
+| `hooks` | `.claude/hooks/**` |
+| `brand` | `src/lib/brand/`, `src/brand.css`, `public/`, `src-tauri/icons/` |
+| `configs` | tsconfig, vite/tauri config, capabilities, settings |
+
+Ask for the window and make the ask answerable: name the surface, the file, and
+what you want to change about it. Running the unlock yourself is refused
+(`unlock-channel`) — a guard the guarded party can lift is not a guard. Reading
+the state (`npm run unlock` with no arguments) stays open to you, so ask for the
+right thing rather than guessing.
 
 Committing needs no window. It is guided rather than gated: the only refusal is
 `-A` / `--all`, because naming the paths is the act of deciding what the commit
@@ -95,11 +105,13 @@ Stated because a guard whose gaps are undocumented reads as stronger than it is:
 
 - **Bash writes are not gated.** The content rules see `Edit`, `MultiEdit` and
   `Write`. A file written through a shell redirect or a script bypasses all of
-  them, including `surface-protect`.
-- **The edit tracker starts when the hooks do.** Session ownership is recorded
-  from the first tool call under a live hook configuration, so files written
-  before that are invisible to the commit and changelog reminders — and get
-  reported as belonging to someone else.
+  them, including `surface-protect` — and including a hand-forged unlock flag
+  under `.claude/hooks/state/`. `unlock-channel` guards the unlock COMMAND; it
+  cannot guard every way of writing a file.
+- **The edit tracker starts when the hooks do, and never sees a script's
+  writes.** Ownership is recorded from `Edit`/`MultiEdit`/`Write` under a live
+  hook configuration. Files outside that are absent from the record for reasons
+  that say nothing about who wrote them, which is why nothing gates on it.
 - **Reminders fire once per Stop chain.** After a block the agent has decided; a
   second one would trap the turn. They are prompts, not walls.
 - **`secret-read` covers files, not the environment.** `env` and `printenv` are

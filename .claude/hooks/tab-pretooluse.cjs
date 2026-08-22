@@ -31,6 +31,7 @@
  *   suppression-gate     a suppression states its reason
  *   settings-weakening   hook wiring and deny lists only grow
  *   bash-gates           commit/push/release channel; destructive commands
+ *   unlock-channel       an agent cannot open its own edit windows
  *   commit-explicit-paths  a commit names its paths, never `-A`
  *   branch-create-guard  one active feature branch
  *   web-content-untrusted  fetched text is data, not instructions
@@ -74,6 +75,7 @@ const PRETOOLUSE_RULES = [
   require("./rules/pretooluse/suppression-gate.cjs"),
   require("./rules/pretooluse/settings-weakening.cjs"),
   require("./rules/pretooluse/bash-gates.cjs"),
+  require("./rules/pretooluse/unlock-channel.cjs"),
   require("./rules/pretooluse/commit-explicit-paths.cjs"),
   require("./rules/pretooluse/branch-create-guard.cjs"),
   require("./rules/pretooluse/web-content-untrusted.cjs"),

@@ -35,7 +35,8 @@ bug.
 ## Changing a rule
 
 `.claude/rules/` is a protected surface: agent edits are refused unless the user
-opens the window (`node .claude/hooks/tab-unlock-rules.cjs`, 30 minutes, toggles).
+opens the window (`npm run unlock -- rules`, 30 minutes; several surfaces at once
+is one command).
 
 That is not because the rules are sacred. It is because a rule and the gate that
 enforces it are one decision in two places, and an agent that can quietly relax
