@@ -8,8 +8,12 @@
  *   session-touched-<sid>.list — every file the session edited, for the whole
  *     session. This is what SESSION OWNERSHIP means downstream: `commit-reminder`
  *     and `changelog-currency` intersect it with the git dirty tree so a parallel
- *     session's work is never swept into another agent's nudges, and
- *     `commit-foreign-hunk` refuses to stage a path that is not in it.
+ *     session's work is never swept into another agent's nudges.
+ *
+ *     It is a REMINDER input, never a gate. A rule that refused a commit on the
+ *     strength of this tracker was removed on 2026-08-22: the record is
+ *     structurally incomplete (see the limit below), so absence from it says
+ *     nothing reliable about who wrote a file.
  *
  *   edited-files-<sid>.list — the same paths, but CONSUMED by the verify gate:
  *     `auto-verify` deletes it after a green run, so the next Stop only checks

@@ -72,10 +72,18 @@ function run(data) {
 
   const list = owned.slice(0, DISPLAY_CAP).map((f) => `  - ${f}`).join("\n");
   const more = owned.length > DISPLAY_CAP ? `\n  ... and ${owned.length - DISPLAY_CAP} more` : "";
+  // Deliberately does NOT claim these belong to someone else. The tracker sees
+  // Edit/MultiEdit/Write and nothing else, so a file written by a script, by a
+  // shell redirect, or before the hooks were live is absent from it for reasons
+  // that say nothing about who wrote it. Asserting "leave them alone" was wrong
+  // often enough to be worth not asserting: it told this very session to abandon
+  // 67 of its own files.
   const foreignNote =
     foreign > 0
-      ? `\n(${foreign} further uncommitted file(s) are not from this session — a parallel ` +
-        "session or the user's own editor. Leave them alone.)\n"
+      ? `\n(${foreign} further uncommitted file(s) are not in this session's edit record. ` +
+        "That can mean a parallel session or the user's own editor — but also a file this " +
+        "session wrote through a script, which the record never sees. Check before including " +
+        "or excluding them.)\n"
       : "";
 
   process.stderr.write(

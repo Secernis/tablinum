@@ -352,6 +352,44 @@ function main() {
     }
   }
 
+  // The `why` belongs in the body, and for these types the diff cannot supply
+  // it: a reader can see WHAT a fix changed and never why that was the right
+  // fix. A nudge rather than a requirement — a `chore` often genuinely has no
+  // reasoning to record, and a mandatory field gets filled with noise.
+  if (!body && ["feat", "fix", "perf", "refactor", "revert"].includes(args.type)) {
+    warn(
+      `\`${args.type}\` without a body. The subject says what changed; the body is where the ` +
+        "reason goes, and it is the only part a reader cannot reconstruct from the diff.\n" +
+        '      npm run commit -- ... --body "..."   or   --body-file <path>',
+    );
+  }
+
+  // A pre-staged index is how a non-atomic commit happens once the sweep
+  // spellings are blocked: an earlier `git add` leaves files in the index, and
+  // `git commit` takes everything staged — not only what this call named. The
+  // index is NOT reset here: that would discard a staging decision someone made
+  // deliberately. It is reported, and they decide.
+  const preStaged = gitRead(["diff", "--cached", "--name-only"]);
+  if (preStaged.ok && preStaged.stdout) {
+    const listed = files.map((f) => f.replace(/\\/g, "/").replace(/\/+$/, ""));
+    const unlisted = preStaged.stdout
+      .split("\n")
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .filter((p) => !listed.some((l) => p === l || p.startsWith(`${l}/`)));
+    if (unlisted.length > 0) {
+      fail(
+        `${unlisted.length} file(s) are already staged but not named in --files:\n` +
+          `${unlisted.slice(0, 15).map((p) => `  ${p}`).join("\n")}\n` +
+          `${unlisted.length > 15 ? `  ... and ${unlisted.length - 15} more\n` : ""}\n` +
+          "`git commit` takes the whole index, so they would ride along inside a commit whose " +
+          "message describes something else.\n\n" +
+          "Either add them to --files if they belong to this change, or unstage them:\n" +
+          "  git restore --staged <path>...",
+      );
+    }
+  }
+
   if (args["dry-run"]) {
     step("dry run");
     info("nothing was staged or committed.");

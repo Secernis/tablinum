@@ -67,16 +67,9 @@ their own terminal:
 Ask for the window and say what you want to change and why. Running the unlock
 yourself is the same as there being no lock.
 
-There is one further user-run confirmation, for a different question:
-
-```
-node .claude/hooks/tab-confirm-commit.cjs
-```
-
-It authorises ONE commit to include paths the edit tracker cannot vouch for —
-files written through a script or a shell redirect, or before the hooks were
-live. Single-use and valid for ten minutes. Ask for it only after saying WHICH
-paths and WHY; running it yourself defeats the gate it belongs to.
+Committing needs no window. It is guided rather than gated: the only refusal is
+`-A` / `--all`, because naming the paths is the act of deciding what the commit
+is.
 
 ## When a gate blocks you
 

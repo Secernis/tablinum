@@ -9,7 +9,7 @@
  * Registry:
  *   track-edits   records edited files per session — the ownership fact every
  *                 later gate reads (commit-reminder, changelog-currency,
- *                 commit-foreign-hunk, auto-verify)
+ *                 auto-verify)
  *   record-usage  tool-usage telemetry
  *   unlock-status injects unlock-window changes as additionalContext; the
  *                 registry's ONLY stdout writer (one envelope per dispatch)

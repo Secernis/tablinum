@@ -1,7 +1,7 @@
 # Branch, commit, push
 
 Enforced by: `branch-protection`, `branch-create-guard`, `bash-gates`,
-`commit-foreign-hunk`, `commit-reminder` (Stop).
+`commit-explicit-paths`, `commit-reminder` (Stop).
 
 ## Nothing is committed on `main`
 
@@ -75,28 +75,38 @@ the user's own editor, a generator. `git add -A` sweeps them all in, and the
 result is a commit whose message describes one change and whose diff contains
 three — attributed to whoever ran the command.
 
-Files are named explicitly and staged one at a time. A path this session never
-touched is refused rather than silently included. Naming a directory is fine:
-it is checked by expanding to the dirty files beneath it, and a single foreign
-file among them still fails the whole path.
+Files are named explicitly and staged one at a time. `-A` and `--all` are
+refused — that is the only refusal on this path, and it is there because naming
+the paths IS the act of deciding what the commit is.
 
-### When the tracker cannot see your own work
+### The index counts too
 
-The edit tracker records `Edit`, `MultiEdit` and `Write`. A file written through
-a script or a shell redirect never reaches it, and neither does anything written
-before the hooks were live. Those files ARE the session's — the tracker simply
-has no record of them, and it says "foreign" because that is the safer of the two
-guesses it can make.
+`git commit` takes the whole index, not just what the call named. So a file
+staged earlier — by a `git add` from an unrelated moment — would ride along
+inside a commit whose message describes something else.
 
-That case has one exit, and it belongs to the user:
+`npm run commit` refuses that, naming the staged files it did not expect. It
+deliberately does **not** reset the index: a staging decision someone made on
+purpose is not the script's to discard. Add them to `--files` if they belong, or
+`git restore --staged <path>` if they do not.
 
-```
-node .claude/hooks/tab-confirm-commit.cjs
-```
+### What is guided rather than gated
 
-Single-use, ten minutes, typed in their own terminal. Ask for it only after
-stating WHICH paths are unvouched and WHY they are yours. An agent that could
-grant itself this exemption would leave no gate behind.
+Ownership is not enforced. An earlier version of this rule refused any path the
+session's edit tracker could not vouch for, and it was removed on 2026-08-22.
+
+The tracker sees `Edit`, `MultiEdit` and `Write` — not a file written by a
+script, not a shell redirect, not anything from before the hooks were live. It
+therefore called a large share of perfectly ordinary work "foreign" and needed a
+confirmation ceremony to undo its own blind spot. A gate whose false positives
+outnumber its catches teaches people to route around it, and that costs more than
+the case it was built for.
+
+What replaced it asks a question that can actually be answered: not *who wrote
+this file*, but *what is about to end up in this commit*.
+
+The Stop reminder still reports files outside the edit record, and says only
+that — it no longer claims they belong to someone else.
 
 ## Push once it is green
 

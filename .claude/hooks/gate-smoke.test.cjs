@@ -66,6 +66,13 @@ const CASES = [
   ["cp .env.example .env", { tool_input: { command: "cp .env.example .env" }, tool_name: "Bash" }, false],
   ["Read tool on .env", { tool_input: { file_path: `${CWD}/.env` }, tool_name: "Read" }, true],
   ["raw git commit", { tool_input: { command: 'git commit -m "x"' }, tool_name: "Bash" }, true],
+  ["commit with -A", { tool_input: { command: 'npm run commit -- -A --type chore --message "x"' }, tool_name: "Bash" }, true],
+  ["commit with --all", { tool_input: { command: 'npm run commit -- --all --type chore --message "x"' }, tool_name: "Bash" }, true],
+  // Pins the 2026-08-22 rollback: naming paths the edit tracker never saw is
+  // NOT a block any more. The tracker cannot see a script's writes, so it called
+  // legitimate work foreign; the commit-content guard moved into `commit.mjs`,
+  // where it can ask the answerable question instead.
+  ["commit naming untracked-by-tracker paths", { tool_input: { command: 'npm run commit -- --files .gitignore package.json --type chore --message "x"' }, tool_name: "Bash" }, false],
   ["git status", { tool_input: { command: "git status --porcelain" }, tool_name: "Bash" }, false],
   ["--no-verify", { tool_input: { command: "git push --no-verify" }, tool_name: "Bash" }, true],
   ["git reset --hard", { tool_input: { command: "git reset --hard HEAD~1" }, tool_name: "Bash" }, true],

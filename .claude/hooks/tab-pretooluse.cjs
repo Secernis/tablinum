@@ -31,7 +31,7 @@
  *   suppression-gate     a suppression states its reason
  *   settings-weakening   hook wiring and deny lists only grow
  *   bash-gates           commit/push/release channel; destructive commands
- *   commit-foreign-hunk  commit only what this session edited
+ *   commit-explicit-paths  a commit names its paths, never `-A`
  *   branch-create-guard  one active feature branch
  *   web-content-untrusted  fetched text is data, not instructions
  *   changelog-awareness  once-per-session CHANGELOG reminder (hint)
@@ -39,9 +39,9 @@
  *
  * Two ordering decisions are load-bearing:
  *
- * `commit-foreign-hunk` runs AFTER `bash-gates`, because a channel violation
+ * `commit-explicit-paths` runs AFTER `bash-gates`, because a channel violation
  * (a raw `git commit`) is the more fundamental finding and should be the one the
- * agent sees; that rule only judges the content of an otherwise valid call.
+ * agent sees; that rule only judges the shape of an otherwise valid call.
  *
  * `changelog-awareness` runs BEFORE `rules-awareness`, because both are hint
  * rules on the same edit tools and only ONE stdout envelope may be emitted per
@@ -74,7 +74,7 @@ const PRETOOLUSE_RULES = [
   require("./rules/pretooluse/suppression-gate.cjs"),
   require("./rules/pretooluse/settings-weakening.cjs"),
   require("./rules/pretooluse/bash-gates.cjs"),
-  require("./rules/pretooluse/commit-foreign-hunk.cjs"),
+  require("./rules/pretooluse/commit-explicit-paths.cjs"),
   require("./rules/pretooluse/branch-create-guard.cjs"),
   require("./rules/pretooluse/web-content-untrusted.cjs"),
   require("./rules/pretooluse/changelog-awareness.cjs"),
