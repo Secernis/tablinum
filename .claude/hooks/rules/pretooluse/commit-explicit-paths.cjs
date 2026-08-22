@@ -25,7 +25,7 @@
  * list does not name.
  */
 
-const { commandSurface } = require("../../lib/bash-command.cjs");
+const { commandSurface, segments } = require("../../lib/bash-command.cjs");
 const { NOOP, PASS, deny } = require("../../lib/io.cjs");
 
 /** A commit invocation through the project's channel. */
@@ -46,7 +46,14 @@ function run(data) {
   const raw = (data.tool_input && data.tool_input.command) || "";
   const surface = commandSurface(raw);
   if (!COMMIT_CALL_RE.test(surface)) return NOOP;
-  if (!STAGE_ALL_RE.test(surface)) return PASS;
+
+  // Per SEGMENT, not per command line. Testing the whole surface attributed a
+  // flag from a neighbouring call to the commit: `verify --all && commit
+  // --inspect` read as a stage-everything commit and was refused. `--all` is a
+  // perfectly ordinary flag on other commands in this repo, so the only correct
+  // scope is the segment that actually runs the commit.
+  const commitSegments = segments(surface).filter((s) => COMMIT_CALL_RE.test(s));
+  if (!commitSegments.some((s) => STAGE_ALL_RE.test(s))) return PASS;
 
   return deny(
     "tab-guard",
