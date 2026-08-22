@@ -19,8 +19,8 @@ original form inside German sentences.
 npm run branch -- <name>       open a feature branch (nothing is committed on main)
 npm run verify -- --files ...  the one gate: types, secrets, markers, changelog, versions
 npm run changelog -- --added   document it while you still know what it means
-npm run commit -- --inspect    what is dirty, grouped
-npm run commit -- --files <path...> --type <type> --message "..." --yes
+npm run commit -- --inspect    what is dirty, grouped; scopes already in use
+npm run commit -- --files <path...> --type <type> --scope <name> --message "..." --yes
 npm run push                   verify, then push
 node scripts/release.mjs <version> --run
 ```
@@ -37,6 +37,12 @@ Four tests, all of which have to hold:
 2. The subject needs no "and"
 3. Every touched file follows from that one reason
 4. It stands on its own: compiles, verifies, no half-migration
+
+The subject is always `type(scope): title` — never `type: title`. The scope names
+which part of the system this touches, and it is the field someone filters on
+months later when hunting the change that broke one area. A body is optional and
+worth writing for `feat` `fix` `perf` `refactor` `revert`: it is the only part a
+reader cannot reconstruct from the diff.
 
 Several separate pieces of work is not a reason to wait — one atomic commit per
 piece.

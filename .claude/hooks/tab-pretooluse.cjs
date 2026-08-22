@@ -33,6 +33,7 @@
  *   bash-gates           commit/push/release channel; destructive commands
  *   unlock-channel       an agent cannot open its own edit windows
  *   commit-explicit-paths  a commit names its paths, never `-A`
+ *   commit-scope         a commit declares which part of the system it touches
  *   branch-create-guard  one active feature branch
  *   web-content-untrusted  fetched text is data, not instructions
  *   changelog-awareness  once-per-session CHANGELOG reminder (hint)
@@ -77,6 +78,7 @@ const PRETOOLUSE_RULES = [
   require("./rules/pretooluse/bash-gates.cjs"),
   require("./rules/pretooluse/unlock-channel.cjs"),
   require("./rules/pretooluse/commit-explicit-paths.cjs"),
+  require("./rules/pretooluse/commit-scope.cjs"),
   require("./rules/pretooluse/branch-create-guard.cjs"),
   require("./rules/pretooluse/web-content-untrusted.cjs"),
   require("./rules/pretooluse/changelog-awareness.cjs"),

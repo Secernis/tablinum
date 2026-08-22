@@ -91,7 +91,7 @@ ${style.bold("npm run commit")} — one atomic change, described in one sentence
   --type <${Object.keys(TYPES).join("|")}>
   --message <subject>           imperative, lowercase, no trailing period
   --body <text> | --body-file <path>
-  --scope <name>                optional conventional-commit scope
+  --scope <name>                REQUIRED — which part of the system this touches
   --dry-run                     show the commit that would be made
   --yes                         no prompts
 
@@ -177,6 +177,79 @@ function checkSubject(subject) {
 }
 
 /**
+ * The shape a scope has to have: lowercase, kebab, short.
+ *
+ * Not a closed vocabulary — see {@link knownScopes} for why the check is a
+ * convergence nudge rather than a list.
+ */
+const SCOPE_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+
+/**
+ * The scopes this repository has actually used, read from its own history.
+ *
+ * A hardcoded list would be one more thing to maintain, and it would be wrong
+ * the first time someone works on a part of the app nobody anticipated. Reading
+ * the history instead lets the vocabulary converge on its own: a scope that
+ * already exists is silently fine, a new one is mentioned once so the author can
+ * notice they are inventing a synonym for something that already has a name.
+ *
+ * @returns {string[]} Distinct scopes seen in commit subjects, most recent first.
+ */
+function knownScopes() {
+  const res = gitRead(["log", "--format=%s", "-400"]);
+  if (!res.ok) return [];
+  const seen = new Set();
+  for (const subject of res.stdout.split("\n")) {
+    const m = /^[a-z]+\(([^)]+)\)!?:/.exec(subject.trim());
+    if (m) seen.add(m[1]);
+  }
+  return [...seen];
+}
+
+/**
+ * Refuse a commit that does not declare a scope.
+ *
+ * The scope is what makes a subject answer "where" as well as "what", and it is
+ * the field a reader filters on when they are looking for the change that broke
+ * something. It was optional in the first version of this script, and the very
+ * first commit it produced — `chore: add the agent guardrail layer` — is the
+ * argument for making it mandatory: correct in form, and useless for finding
+ * anything, because it names no part of the system.
+ *
+ * @param {string|undefined} scope - The `--scope` value.
+ * @returns {void}
+ */
+function checkScope(scope) {
+  if (!scope) {
+    const known = knownScopes();
+    fail(
+      "every commit declares a scope: `--scope <name>`.\n\n" +
+        "The subject then answers where as well as what — `fix(commit): ...` rather than " +
+        "`fix: ...` — which is what a reader filters on when hunting the change that broke " +
+        "something.\n\n" +
+        (known.length > 0
+          ? `Scopes this repo already uses: ${known.join(", ")}\n`
+          : "Name the part of the system this touches: a script, a rule, a surface, a feature.\n"),
+      ExitCode.USAGE,
+    );
+  }
+  if (!SCOPE_RE.test(scope)) {
+    fail(
+      `'${scope}' is not a scope. Lowercase letters, digits and hyphens — it becomes part of a ` +
+        "subject line that gets grepped.",
+      ExitCode.USAGE,
+    );
+  }
+  // A new scope is allowed and mentioned once. Two names for the same area is
+  // how a scope column stops being worth filtering on, and the author is the
+  // only one who can tell a genuinely new area from a synonym.
+  const known = knownScopes();
+  if (known.length > 0 && !known.includes(scope)) {
+    warn(`'${scope}' is new here. Existing scopes: ${known.join(", ")}`);
+  }
+}
+
+/**
  * Refuse a type that contradicts what the diff contains.
  *
  * @param {string} type - The declared type.
@@ -247,6 +320,11 @@ function checkSecrets(files) {
  * @returns {void}
  */
 function runInspect() {
+  const known = knownScopes();
+  if (known.length > 0) {
+    step("scopes in use");
+    process.stdout.write(`  ${known.join(", ")}\n`);
+  }
   const dirty = status();
   step("uncommitted");
   if (dirty.length === 0) {
@@ -312,6 +390,7 @@ function main() {
   if (!args.message) fail("write the subject: `--message \"...\"`.", ExitCode.USAGE);
 
   const subject = String(args.message).trim();
+  checkScope(args.scope);
   checkType(args.type, files);
   checkSubject(subject);
   checkSecrets(files);
@@ -325,7 +404,7 @@ function main() {
     }
   }
 
-  const scope = args.scope ? `(${args.scope})` : "";
+  const scope = `(${args.scope})`;
   const header = `${args.type}${scope}: ${subject}`;
   const message = body ? `${header}\n\n${body}` : header;
 

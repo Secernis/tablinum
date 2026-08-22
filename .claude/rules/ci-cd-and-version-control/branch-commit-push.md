@@ -51,18 +51,36 @@ there.
 
 ```
 npm run commit -- --inspect
-npm run commit -- --files <path...> --type <type> --message "..." --yes
+npm run commit -- --files <path...> --type <type> --scope <name> --message "..." --yes
 npm run commit -- --files ... --dry-run
 ```
+
+### `type(scope): title`, always
 
 Types: `feat` `fix` `perf` `refactor` `revert` `docs` `test` `chore` `ci`
 `build` `style`. The type is what a reader trusts to decide whether a commit
 could have broken something, so a `feat` whose diff is only documentation is
 refused.
 
+The scope is **required**. It names which part of the system the commit touches,
+and it is the field someone filters on months later while hunting the change that
+broke one area. A history where only some commits carry one cannot be filtered at
+all, because a missing scope and a different area look identical.
+
+It was optional in the first version of this script, and the first commit the
+channel produced is the argument against that: `chore: add the agent guardrail
+layer` — correct in form, passing every other check, and naming no part of the
+system.
+
+The vocabulary is not a fixed list. `npm run commit -- --inspect` shows the
+scopes the repository already uses, and a new one is allowed with a one-line
+notice — enough for the author to notice they are inventing a synonym for
+something that already has a name.
+
 Subjects are English, imperative, lowercase, no trailing period, under 72
-characters. Bodies may be German — they explain, and explanation is for whoever
-is here.
+characters. Bodies are optional and worth writing for `feat` `fix` `perf`
+`refactor` `revert`, where the reason cannot be reconstructed from the diff; they
+may be German — they explain, and explanation is for whoever is here.
 
 **Several separate pieces of work is not a reason to wait.** Make one atomic
 commit per piece. Only genuinely half-finished work is left behind, and then say

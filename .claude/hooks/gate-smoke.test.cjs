@@ -77,12 +77,16 @@ const CASES = [
   // `--all` belongs to verify here, not to the commit. Testing the whole command
   // line instead of the commit segment refused this.
   ["verify --all then commit", { tool_input: { command: "npm run verify -- --all && npm run commit -- --inspect" }, tool_name: "Bash" }, false],
+  ["commit without a scope", { tool_input: { command: 'npm run commit -- --files a.ts --type fix --message "x"' }, tool_name: "Bash" }, true],
+  ["commit with a scope", { tool_input: { command: 'npm run commit -- --files a.ts --type fix --scope commit --message "x"' }, tool_name: "Bash" }, false],
+  ["commit with --scope=", { tool_input: { command: 'npm run commit -- --files a.ts --type fix --scope=commit --message "x"' }, tool_name: "Bash" }, false],
+  ["inspect needs no scope", { tool_input: { command: "npm run commit -- --inspect" }, tool_name: "Bash" }, false],
   ["commit with --all", { tool_input: { command: 'npm run commit -- --all --type chore --message "x"' }, tool_name: "Bash" }, true],
   // Pins the 2026-08-22 rollback: naming paths the edit tracker never saw is
   // NOT a block any more. The tracker cannot see a script's writes, so it called
   // legitimate work foreign; the commit-content guard moved into `commit.mjs`,
   // where it can ask the answerable question instead.
-  ["commit naming untracked-by-tracker paths", { tool_input: { command: 'npm run commit -- --files .gitignore package.json --type chore --message "x"' }, tool_name: "Bash" }, false],
+  ["commit naming untracked-by-tracker paths", { tool_input: { command: 'npm run commit -- --files .gitignore package.json --type chore --scope build --message "x"' }, tool_name: "Bash" }, false],
   ["git status", { tool_input: { command: "git status --porcelain" }, tool_name: "Bash" }, false],
   ["--no-verify", { tool_input: { command: "git push --no-verify" }, tool_name: "Bash" }, true],
   ["git reset --hard", { tool_input: { command: "git reset --hard HEAD~1" }, tool_name: "Bash" }, true],
