@@ -1,0 +1,32 @@
+/* AUTO-GENERATED from tokens/brand.lock.json - do not edit. */
+:root[data-theme="light"]{
+  --t-bg: #faf6f0;
+  --t-surface: #fdfbf9;
+  --t-surfaceRaised: #ffffff;
+  --t-border: #dbd6d1;
+  --t-text: #1c1410;
+  --t-textMuted: #5a534f;
+  --t-accent: #9a5b2c;
+  --t-accentText: #ffffff;
+  --t-accentSoft: #f4ebde;
+  --t-danger: #a8362b;
+  --t-focus: #e6cfae;
+}
+:root[data-theme="dark"]{
+  --t-bg: #1c1410;
+  --t-surface: #2a221e;
+  --t-surfaceRaised: #352e2a;
+  --t-border: #453e3b;
+  --t-text: #fbf8f3;
+  --t-textMuted: #ad9b82;
+  --t-accent: #e6cfae;
+  --t-accentText: #1c1410;
+  --t-accentSoft: #483d33;
+  --t-danger: #cf908a;
+  --t-focus: #e6cfae;
+}
+:root{
+  --tb-clearspace: 0.5;
+  --tb-min-mark: 20px;
+  --tb-min-lockup: 200px;
+}

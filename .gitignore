@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tauri dev config override (written by scripts/dev.mjs)
+src-tauri/tauri.dev.conf.json
+
+# Local environment (paths, possibly credentials) — never belongs in the repo
+.env
+.env.local
+
+# Unpacked third-party archives
+vendor/
+
+# --- Brand authoring stays private ---------------------------------------
+# design/ holds the brand portal, the mocks and the generator of the mark.
+# None of that belongs in a public repository: a clone would otherwise carry the
+# complete brand material — and trademarks are governed by different rules than
+# the code that uses them.
+#
+# What the app needs in order to build is NOT in here; it is versioned inside
+# the app tree: src/lib/brand/, src/brand.css, public/ (favicons, fonts) and
+# src-tauri/icons/. A fresh clone therefore builds without design/ and without
+# Python.
+#
+# NOTE: this leaves the generator on one machine only. design/ belongs in its
+# own private repository or a backup — otherwise the mark is no longer
+# reproducible after a machine change.
+design/

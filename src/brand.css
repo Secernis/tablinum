@@ -1,0 +1,138 @@
+/* AUTO-GENERATED from design/tokens/brand.lock.json - do not edit.
+ * Written by design/tokens/build-theme.py.
+ *
+ * Loads AFTER tailgrids.css and overrides only what carries the brand:
+ * type and primary colour. Structural tokens stay with TailGrids. */
+
+/* Fonts served locally from public/fonts/ (distribute.mjs puts them there).
+   No network import. Variable fonts, hence one file per family
+   and style. GENERATED from fonts.bundle in the lock - to change a role,
+   change that list, not this block. */
+@font-face{font-family:'Lora';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/lora-latin-wght-normal.woff2') format('woff2')}
+@font-face{font-family:'Lora';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/lora-latin-wght-italic.woff2') format('woff2')}
+@font-face{font-family:'Familjen Grotesk';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/familjen-grotesk-latin-wght-normal.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url('/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2')}
+
+@theme {
+  /* Type */
+  --font-sans: 'Familjen Grotesk', system-ui, sans-serif;
+  --font-display: 'Lora', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  /* Primary ramp from the Tabula palette (500 = brand.lock flat) */
+  --color-primary-50: #f9f5f2;
+  --color-primary-100: #f1e8e1;
+  --color-primary-200: #e5d4c8;
+  --color-primary-300: #d3b7a2;
+  --color-primary-400: #b88c6b;
+  --color-primary-500: #9a5b2c;
+  --color-primary-600: #834e27;
+  --color-primary-700: #6f4322;
+  --color-primary-800: #5b381e;
+  --color-primary-900: #492e1a;
+  --color-primary-950: #352216;
+  --color-neutral-brand-color: #e6cfae;
+  --color-primary-text: #ffffff;
+
+  /* Brand anchors + usage rules (own markup, Logo component) */
+  --color-tb-1: #e6cfae;
+  --color-tb-2: #9a5b2c;
+  --color-tb-3: #1c1410;
+  --tb-clearspace: 0.5;
+  --tb-min-mark: 20px;
+  --tb-min-lockup: 200px;
+
+  /* Graded scales in OKLCH.
+   *
+   * Purpose: hierarchy should come from lightness, not from new colours.
+   * Previously there was ONE value per role, which made every in-between
+   * step a special case.
+   *
+   * The steps are not invented: they sit on the line between the anchors
+   * of the Tabula gradient above. Where a step meets the lightness of an
+   * anchor it IS that anchor - accent-300 is the signal, accent-700 the
+   * surface, ink-950 the depth. */
+  --color-accent-50: oklch(0.970 0.0295 76.8);
+  --color-accent-100: oklch(0.940 0.0310 76.8);
+  --color-accent-200: oklch(0.905 0.0328 76.8);
+  --color-accent-300: oklch(0.865 0.0509 76.8);
+  --color-accent-400: oklch(0.790 0.0477 71.9);
+  --color-accent-500: oklch(0.705 0.0643 66.2);
+  --color-accent-600: oklch(0.615 0.0844 60.3);
+  --color-accent-700: oklch(0.534 0.1031 54.9);
+  --color-accent-800: oklch(0.400 0.0577 52.1);
+  --color-accent-900: oklch(0.285 0.0277 49.7);
+  --color-ink-50: oklch(0.970 0.0208 47.9);
+  --color-ink-100: oklch(0.930 0.0221 47.9);
+  --color-ink-200: oklch(0.855 0.0245 47.9);
+  --color-ink-300: oklch(0.780 0.0269 47.9);
+  --color-ink-400: oklch(0.680 0.0302 47.9);
+  --color-ink-500: oklch(0.580 0.0334 47.9);
+  --color-ink-600: oklch(0.500 0.0360 47.9);
+  --color-ink-700: oklch(0.420 0.0334 47.9);
+  --color-ink-800: oklch(0.340 0.0308 47.9);
+  --color-ink-850: oklch(0.270 0.0285 47.9);
+  --color-ink-900: oklch(0.235 0.0274 47.9);
+  --color-ink-950: oklch(0.200 0.0154 47.9);
+
+  /* State colours - meaning, not colour value. */
+  --color-ok: oklch(0.800 0.1821 151.7);
+  --color-live: oklch(0.785 0.1325 181.9);
+  --color-warn: oklch(0.837 0.1644 84.4);
+  --color-err: oklch(0.638 0.1024 25.7);
+  --color-info: oklch(0.865 0.0509 76.8);
+}
+
+/* Semantic tokens for own markup - same derivation as in the design
+   portal, so mock and app cannot drift apart. */
+:root[data-theme="light"]{
+  --t-bg: #faf6f0;
+  --t-surface: #fdfbf9;
+  --t-surfaceRaised: #ffffff;
+  --t-border: #dbd6d1;
+  --t-text: #1c1410;
+  --t-textMuted: #5a534f;
+  --t-accent: #9a5b2c;
+  --t-accentText: #ffffff;
+  --t-accentSoft: #f4ebde;
+  --t-danger: #a8362b;
+  --t-focus: #e6cfae;
+}
+:root[data-theme="dark"]{
+  --t-bg: #1c1410;
+  --t-surface: #2a221e;
+  --t-surfaceRaised: #352e2a;
+  --t-border: #453e3b;
+  --t-text: #fbf8f3;
+  --t-textMuted: #ad9b82;
+  --t-accent: #e6cfae;
+  --t-accentText: #1c1410;
+  --t-accentSoft: #483d33;
+  --t-danger: #cf908a;
+  --t-focus: #e6cfae;
+}
+
+/* The same tokens as Tailwind colours.
+ *
+ * `@theme inline` rather than `@theme`: the value stays a REFERENCE to the
+ * --t-* variable instead of being copied. Only then does a utility like
+ * `bg-surface` follow the theme switch (data-theme="dark"); copied
+ * values would freeze it on the light state.
+ *
+ * The names deliberately differ from the token names: `bg-bg` and
+ * `border-border` read like typos. */
+@theme inline {
+  --color-canvas: var(--t-bg);
+  --color-surface: var(--t-surface);
+  --color-raised: var(--t-surfaceRaised);
+  --color-line: var(--t-border);
+  --color-ink: var(--t-text);
+  --color-muted: var(--t-textMuted);
+  --color-accent: var(--t-accent);
+  --color-on-accent: var(--t-accentText);
+  --color-accent-soft: var(--t-accentSoft);
+  --color-danger: var(--t-danger);
+  --color-focus: var(--t-focus);
+}
+
+:root { font-feature-settings: "zero" 1; }

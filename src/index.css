@@ -1,0 +1,49 @@
+/* The app's stylesheet chain. The order is not a formality:
+ *
+ *   1. tailgrids.css — brings `@import "tailwindcss"` along with the forms
+ *                      plugin and the structural tokens of the components
+ *   2. theme.css     — the semantic tokens (--t-*) for light and dark,
+ *                      GENERATED from design/tokens/brand.lock.json
+ *   3. brand.css     — fonts, brand ramps, and the bridge that turns those
+ *                      tokens into Tailwind colours (@theme inline)
+ *
+ * brand.css MUST come after tailgrids.css: it overrides exactly what carries the
+ * brand (primary ramp, --font-sans) and leaves the rest of TailGrids untouched.
+ * The other way round you would get DM Sans and TailGrids indigo.
+ *
+ * theme.css before brand.css, because brand.css references the --t-* variables.
+ * Both are generated — to change a value, change the lock and run
+ * `npm run brand:build`.
+ */
+@import "../tailgrids.css";
+@import "./lib/brand/theme.css";
+@import "./brand.css";
+
+/* The theme follows the system setting until someone picks one explicitly.
+ * theme.css defines the tokens under [data-theme="light"|"dark"] — without this
+ * rule a page with no data-theme would have no colours at all. */
+:root {
+  color-scheme: light dark;
+}
+
+html:not([data-theme]) {
+  /* Fall back to light; main.tsx sets data-theme at startup from
+     prefers-color-scheme or the user's choice. */
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--t-bg);
+  color: var(--t-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers appear in columns, so they are tabular everywhere — not just inside
+ * tables. Measured in logo/fonts/audit.json: JetBrains Mono is monospaced by
+ * default, so the feature does no harm there. */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

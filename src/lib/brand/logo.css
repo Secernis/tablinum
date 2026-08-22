@@ -1,0 +1,29 @@
+/* Schutzzone der Marke. Die Werte kommen aus src/brand.css (generiert aus
+   design/tokens/brand.lock.json) — hier steht nur, WIE sie angewandt werden. */
+
+.tablinum-logo {
+  display: inline-block;
+  line-height: 0;
+}
+
+/* Schutzzone = halbe Markenhöhe, als Padding. Nichts kann hineinragen, weil das
+   Padding Teil der Komponente ist und nicht des Layouts. */
+.tablinum-logo.clearspace {
+  padding: calc(var(--size) * var(--tb-clearspace, 0.5));
+}
+
+/* Beim Lockup bezieht sich die Zone auf die Markenhöhe, nicht auf die
+   Gesamtbreite — sonst wäre der Rand absurd groß. */
+.tablinum-logo.lockup.clearspace {
+  padding: calc(var(--size) * 0.14);
+}
+
+.tablinum-logo svg {
+  display: block;
+  width: var(--size);
+  height: auto;
+}
+
+.tablinum-logo:not(.lockup) svg {
+  height: var(--size);
+}
