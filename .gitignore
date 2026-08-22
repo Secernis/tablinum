@@ -48,3 +48,8 @@ vendor/
 # own private repository or a backup — otherwise the mark is no longer
 # reproducible after a machine change.
 design/
+
+# Local tooling configuration. .mcp.json wires up the TailGrids MCP server for
+# this workspace — no credentials, but it is an editor setup rather than part of
+# the project.
+.mcp.json

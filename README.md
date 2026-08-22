@@ -109,7 +109,7 @@ without the generator:
 src/lib/brand/     Logo component and vectors, light and dark
 src/brand.css      fonts, ramps, token bridge
 public/            favicons and the four font files
-src-tauri/icons/   app icons including .ico and .icns
+src-tauri/icons/   app icons: .ico, .icns and the PNG sizes Tauri bundles
 ```
 
 The mark exists in two versions: the full one above 40 px, and a robust one
