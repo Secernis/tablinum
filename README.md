@@ -116,18 +116,53 @@ The mark exists in two versions: the full one above 40 px, and a robust one
 below it — without joints, with filled nodes and a 1.6× wall. Small sizes need
 more mass, not fewer details.
 
+## Working on it
+
+```bash
+npm run branch -- add-ssh-support     # open a feature branch; nothing lands on main
+npm run verify -- --files <path...>   # the one gate everything else runs
+npm run changelog -- --added "..."    # document it while you still know what it means
+npm run commit -- --inspect           # what is dirty, grouped
+npm run commit -- --files <path...> --type feat --message "..."
+npm run push                          # verify, then push
+```
+
+`npm run verify` is the single place anything can say no about this tree: types,
+secret values, debt markers, comment language, the CHANGELOG schema, whether the
+declared versions still agree, and — with `--all` or `--rust` — clippy and the
+Rust tests. The Stop hook runs it scoped to what changed; `push` and `release`
+run it in full.
+
+The CHANGELOG is written **as work lands**, not at release time. A changelog
+written from `git log` says what changed in the code; this one says what changed
+for the person using the app, and only the person who made the change can write
+that.
+
+Raw `git commit`, `git push` and `git tag` are blocked in agent sessions. Each
+script does something the bare command cannot, and the raw version produces a
+result that looks identical having skipped all of it. Full standards:
+[`.claude/rules/`](.claude/rules/).
+
 ## Release
 
 ```bash
-npm run release 0.3.0            # preview, changes nothing
-npm run release 0.3.0 -- --run   # build assets, set version, commit, tag
-npm run release 0.3.0 -- --run --push
+node scripts/release.mjs 0.3.0            # preview, changes nothing
+node scripts/release.mjs --bump minor     # take the number from the changelog
+node scripts/release.mjs 0.3.0 --run      # assets, version, changelog, commit, tag
+node scripts/release.mjs 0.3.0 --run --push
 ```
 
-The script builds the mark first, distributes it into `src/lib/brand`, `public/`
-and `src-tauri/icons`, sets the version in **all three** files (`package.json`,
-`tauri.conf.json`, `Cargo.toml` — if they drift apart the app reports a
-different version than the tag), then creates commit and tag.
+A release is five statements that have to agree: `package.json`,
+`tauri.conf.json`, `Cargo.toml`, the CHANGELOG's newest heading, and the git tag.
+When they drift **nothing fails** — each file is internally consistent, the build
+succeeds, and the app reports a version matching no tag. The script writes all
+five or none, which is why the raw `git tag` is blocked.
+
+It runs the verify gate first, builds the mark and distributes it into
+`src/lib/brand`, `public/` and `src-tauri/icons`, promotes `## [Unreleased]` into
+a dated version section, sets the version everywhere, then commits and tags. An
+empty Unreleased section refuses the release: a version that tells users nothing
+changed is either undocumented work or no work.
 
 **A release has to run from the machine that holds `design/`.** CI could not
 produce the logo and would silently ship a stale mark. If the directory is

@@ -11,7 +11,12 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "brand:build": "python design/build-all.py",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "branch": "node scripts/branch.mjs",
+    "changelog": "node scripts/changelog.mjs",
+    "commit": "node scripts/commit.mjs",
+    "push": "node scripts/push.mjs",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "@tailgrids/icons": "^2.0.1",

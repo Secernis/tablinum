@@ -53,3 +53,17 @@ design/
 # this workspace — no credentials, but it is an editor setup rather than part of
 # the project.
 .mcp.json
+
+# --- Agent guardrails -----------------------------------------------------
+# .claude/hooks/state/ is runtime state: the unlock-window flags, the per-session
+# edit trackers, the telemetry rings and the stored push verdict. All of it is
+# local to one machine and one set of sessions; committing it would hand another
+# clone stale flags and a verdict about a commit it never verified.
+.claude/hooks/state/
+
+# The user's own "stop reminding me" switch for a visual iteration loop.
+.claude/iteration.lock
+
+# Per-machine Claude Code settings. .claude/settings.json IS committed — it wires
+# up the hooks and is part of the project.
+.claude/settings.local.json

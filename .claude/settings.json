@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "includeGitInstructions": false,
+  "permissions": {
+    "allow": [
+      "Bash(npm run verify:*)",
+      "Bash(npm run changelog:*)",
+      "Bash(npm run branch:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-sessionstart.cjs\"",
+            "timeout": 30,
+            "statusMessage": "tab-hooks: Git-, Changelog- und Unlock-Kontext laden"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-pretooluse.cjs\"",
+            "timeout": 15,
+            "statusMessage": "tab-guard: Gates prüfen"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-posttooluse.cjs\"",
+            "timeout": 15,
+            "statusMessage": "tab-hooks: Edits erfassen"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-stop.cjs\"",
+            "timeout": 900,
+            "statusMessage": "tab-hooks: Verify, Clippy, Changelog, Commit"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-userpromptsubmit.cjs\"",
+            "timeout": 10,
+            "statusMessage": "tab-hooks: Unlock-Fenster und Sprachanker"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-subagent-stop.cjs\"",
+            "timeout": 10,
+            "statusMessage": "tab-hooks: Subagent-Telemetrie"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tab-configchange.cjs\"",
+            "timeout": 10,
+            "statusMessage": "tab-hooks: Settings-Audit"
+          }
+        ]
+      }
+    ]
+  }
+}
