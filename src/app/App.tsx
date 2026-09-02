@@ -1,6 +1,7 @@
 import { ArrowLeft } from "@tailgrids/icons";
 import { useState } from "react";
 
+import { useCommitLog } from "@/application/history/use-commit-log";
 import { useOpenRepository } from "@/application/repository/use-open-repository";
 import { useRepositoryList } from "@/application/repository/use-repository-list";
 import { ServicesProvider, type Services } from "@/application/services-context";
@@ -28,6 +29,26 @@ const services: Services = {
   folders: createTauriFolderPicker(),
 };
 
+/** The opened repository, with its log wired to the use case that pages it. */
+function OverviewScreen({ opened, onBack }: { opened: OpenedRepository; onBack(): void }) {
+  const log = useCommitLog(opened);
+  return (
+    <AppShell
+      title={opened.repository.name}
+      subtitle={opened.repository.path}
+      actions={
+        <Button variant="primary" appearance="outline" size="sm" onPress={onBack}>
+          <ArrowLeft />
+          Repositories
+        </Button>
+      }
+      controls={<ThemeToggle />}
+    >
+      <RepoOverview opened={opened} log={log} />
+    </AppShell>
+  );
+}
+
 /** The shell, and whichever screen the user is on. */
 export default function App() {
   return (
@@ -51,21 +72,7 @@ function Workspace() {
   }
 
   if (opened) {
-    return (
-      <AppShell
-        title={opened.repository.name}
-        subtitle={opened.repository.path}
-        actions={
-          <Button variant="primary" appearance="outline" size="sm" onPress={() => setOpened(null)}>
-            <ArrowLeft />
-            Repositories
-          </Button>
-        }
-        controls={<ThemeToggle />}
-      >
-        <RepoOverview opened={opened} />
-      </AppShell>
-    );
+    return <OverviewScreen opened={opened} onBack={() => setOpened(null)} />;
   }
 
   return (

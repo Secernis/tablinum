@@ -4,6 +4,12 @@ export interface Author {
   email: string;
 }
 
+/** How much one author contributed, in commits. */
+export interface AuthorActivity {
+  author: Author;
+  commits: number;
+}
+
 /** The size of a commit, as git's shortstat counts it. */
 export interface CommitStats {
   filesChanged: number;

@@ -1,4 +1,4 @@
-import type { OpenedRepository } from "@/domain/history";
+import type { Commit, OpenedRepository } from "@/domain/history";
 import type { LocatedRepository } from "@/domain/repository";
 
 /**
@@ -46,4 +46,6 @@ export interface RepositoryGateway {
   discover(roots: string[], onFound: (repository: LocatedRepository) => void): Promise<number>;
   /** Open the repository at `path` and summarize it. Rejects with a `RepositoryError`. */
   open(path: string): Promise<OpenedRepository>;
+  /** A page of the log, newest first: `limit` commits after skipping `skip`. */
+  commits(path: string, skip: number, limit: number): Promise<Commit[]>;
 }

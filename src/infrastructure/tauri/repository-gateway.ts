@@ -1,16 +1,39 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 
 import type { RepositoryError, RepositoryGateway } from "@/application/repository/gateway";
-import type { OpenedRepository } from "@/domain/history";
+import type { CodeSize } from "@/domain/analysis";
+import type { Commit, OpenedRepository } from "@/domain/history";
 import type { LocatedRepository } from "@/domain/repository";
 
-import type { ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto } from "./dto";
+import type { CodeSizeDto, CommitDto, ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto } from "./dto";
 
 /** The command names, as registered in the backend's composition root. */
 const COMMANDS = {
   discover: "discover_repositories",
   open: "open_repository",
+  commits: "list_commits",
 } as const;
+
+function toCommit(c: CommitDto): Commit {
+  return {
+    shortHash: c.shortHash,
+    subject: c.subject,
+    author: { name: c.authorName, email: c.authorEmail },
+    at: c.at,
+    stats: { filesChanged: c.filesChanged, insertions: c.insertions, deletions: c.deletions },
+  };
+}
+
+function toCodeSize(dto: CodeSizeDto | null): CodeSize | null {
+  if (!dto) return null;
+  return {
+    files: dto.files,
+    code: dto.code,
+    comments: dto.comments,
+    blanks: dto.blanks,
+    languages: dto.languages.map((l) => ({ name: l.name, code: l.code })),
+  };
+}
 
 function toLocated(dto: LocatedRepositoryDto): LocatedRepository {
   return {
@@ -20,15 +43,7 @@ function toLocated(dto: LocatedRepositoryDto): LocatedRepository {
     headSubject: dto.headSubject,
     headAt: dto.headAt,
     commitCount: dto.commitCount,
-    code: dto.code
-      ? {
-          files: dto.code.files,
-          code: dto.code.code,
-          comments: dto.code.comments,
-          blanks: dto.code.blanks,
-          languages: dto.code.languages.map((l) => ({ name: l.name, code: l.code })),
-        }
-      : null,
+    code: toCodeSize(dto.code),
   };
 }
 
@@ -38,16 +53,12 @@ function toOpened(dto: OpenedRepositoryDto): OpenedRepository {
     history: {
       commitCount: dto.history.commitCount,
       authorCount: dto.history.authorCount,
+      authors: dto.history.authors.map((a) => ({ author: { name: a.name, email: a.email }, commits: a.commits })),
       firstCommitAt: dto.history.firstCommitAt,
       lastCommitAt: dto.history.lastCommitAt,
-      recent: dto.history.recent.map((c) => ({
-        shortHash: c.shortHash,
-        subject: c.subject,
-        author: { name: c.authorName, email: c.authorEmail },
-        at: c.at,
-        stats: { filesChanged: c.filesChanged, insertions: c.insertions, deletions: c.deletions },
-      })),
+      recent: dto.history.recent.map(toCommit),
     },
+    code: toCodeSize(dto.code),
   };
 }
 
@@ -80,6 +91,10 @@ export function createTauriRepositoryGateway(): RepositoryGateway {
     open: (path) =>
       invoke<OpenedRepositoryDto>(COMMANDS.open, { path })
         .then(toOpened)
+        .catch((e) => Promise.reject(toError(e))),
+    commits: (path, skip, limit) =>
+      invoke<CommitDto[]>(COMMANDS.commits, { path, skip, limit })
+        .then((list) => list.map(toCommit))
         .catch((e) => Promise.reject(toError(e))),
   };
 }

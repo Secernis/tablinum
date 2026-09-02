@@ -29,6 +29,7 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Choose the repository to read: pick a recent one, scan the folders you add, or open one through the native folder dialog
 - The overview shows the opened repository's real totals and its newest commits with their line counts
 - Each repository on the start page shows its commit count, lines of code, file count and a language bar
+- The overview shows the languages with their share of the code and the authors with their share of the commits
 
 ### Changed
 - The app opens with the repository picker instead of the scaffold status page
@@ -36,6 +37,7 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Every page has a title bar with its actions on the right; the content sits as cards on the canvas
 - The start page is one list of the repositories you added, by folder or one at a time, newest commit first; skeleton rows show while a scan runs
 - Cards and the title bar carry a subtle glass material with tinted depth, in both themes
+- The overview's commit table shows five commits at a time, loads five more per click, and shows the net line change per commit in colour
 
 ### Fixed
 - Dates, relative times and numbers render in English regardless of the system language

@@ -41,9 +41,16 @@ export interface CommitDto {
   deletions: number;
 }
 
+export interface AuthorActivityDto {
+  name: string;
+  email: string;
+  commits: number;
+}
+
 export interface HistorySummaryDto {
   commitCount: number;
   authorCount: number;
+  authors: AuthorActivityDto[];
   firstCommitAt: number | null;
   lastCommitAt: number | null;
   recent: CommitDto[];
@@ -54,6 +61,7 @@ export interface OpenedRepositoryDto {
   name: string;
   branch: string | null;
   history: HistorySummaryDto;
+  code: CodeSizeDto | null;
 }
 
 export type ErrorDto =
