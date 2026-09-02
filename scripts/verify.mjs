@@ -311,6 +311,7 @@ function sensorGates() {
   const suites = [
     [join(ROOT, ".claude", "hooks", "gate-smoke.test.cjs"), ".claude/hooks", "the gate suite"],
     [join(ROOT, "scripts", "lib", "ui-lang.test.cjs"), "scripts/lib/ui-lang.cjs", "the UI-string detector suite"],
+    [join(ROOT, "scripts", "lib", "git-conventions.test.cjs"), "scripts/lib/git-conventions.cjs", "the git conventions suite"],
   ];
   const out = [];
   for (const [suite, where, label] of suites) {

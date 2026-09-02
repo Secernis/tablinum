@@ -51,6 +51,7 @@ import {
 const require = createRequire(import.meta.url);
 const secretWrite = require("../.claude/hooks/rules/pretooluse/secret-write.cjs");
 const { unreleasedEntries } = require("./lib/changelog-core.cjs");
+const conventions = require("./lib/git-conventions.cjs");
 
 const SPEC = {
   "body-file": "string",
@@ -69,19 +70,7 @@ const SPEC = {
  * Conventional commit types, with what each one claims and whether it is
  * something a user would notice.
  */
-const TYPES = {
-  build: { userVisible: false, what: "the build system or dependencies" },
-  chore: { userVisible: false, what: "housekeeping with no effect on the product" },
-  ci: { userVisible: false, what: "the CI configuration" },
-  docs: { userVisible: false, what: "documentation only" },
-  feat: { userVisible: true, what: "a capability the user did not have before" },
-  fix: { userVisible: true, what: "a defect the user could hit" },
-  perf: { userVisible: true, what: "the same behaviour, measurably faster" },
-  refactor: { userVisible: false, what: "structure only — behaviour is unchanged" },
-  revert: { userVisible: true, what: "an earlier commit undone" },
-  style: { userVisible: false, what: "formatting only" },
-  test: { userVisible: false, what: "tests only" },
-};
+const TYPES = conventions.COMMIT_TYPES;
 
 const HELP = `
 ${style.bold("npm run commit")} — one atomic change, described in one sentence
@@ -145,35 +134,8 @@ function suggestType(files) {
  * @returns {void}
  */
 function checkSubject(subject) {
-  if (subject.length > 72) {
-    fail(
-      `the subject is ${subject.length} characters. Keep it under 72 — a subject that does not ` +
-        "fit on one line is usually describing more than one change.",
-      ExitCode.USAGE,
-    );
-  }
-  if (/\.$/.test(subject)) {
-    fail("no trailing period in the subject — it is a title, not a sentence.", ExitCode.USAGE);
-  }
-  if (/^[A-Z]/.test(subject) && !/^[A-Z]{2,}/.test(subject)) {
-    fail("start the subject lowercase (after the type prefix).", ExitCode.USAGE);
-  }
-  if (/\b(?:and|und|plus|sowie)\b/i.test(subject) || subject.includes(" & ")) {
-    fail(
-      `"${subject}" needs a conjunction to describe itself, which means it is two changes.\n\n` +
-        "Split it: `npm run commit -- --inspect` shows what is dirty, and `--files` lets you " +
-        "carve the first change out. Two commits that each revert cleanly are worth more than " +
-        "one that reverts neither.",
-      ExitCode.USAGE,
-    );
-  }
-  if (/^(?:wip|temp|tmp|misc|stuff|update|updates|changes)\b/i.test(subject)) {
-    fail(
-      `"${subject}" says nothing. In six months the only question anyone asks of a commit is ` +
-        "why it happened — write that.",
-      ExitCode.USAGE,
-    );
-  }
+  const reason = conventions.checkSubject(subject);
+  if (reason) fail(reason, ExitCode.USAGE);
 }
 
 /**
@@ -182,7 +144,7 @@ function checkSubject(subject) {
  * Not a closed vocabulary — see {@link knownScopes} for why the check is a
  * convergence nudge rather than a list.
  */
-const SCOPE_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const SCOPE_RE = conventions.SCOPE_RE;
 
 /**
  * The scopes this repository has actually used, read from its own history.

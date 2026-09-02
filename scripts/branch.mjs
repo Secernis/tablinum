@@ -19,6 +19,7 @@
  * one deletion nobody can undo from memory.
  */
 
+import { createRequire } from "node:module";
 import {
   ExitCode,
   currentBranch,
@@ -42,8 +43,8 @@ const SPEC = {
   switch: "string",
 };
 
-/** Branch prefixes that say what a branch is for. */
-const KNOWN_PREFIXES = ["feat", "fix", "chore", "docs", "refactor", "perf", "test", "build", "ci"];
+const require = createRequire(import.meta.url);
+const { BRANCH_PREFIXES: KNOWN_PREFIXES, normalizeBranchName } = require("./lib/git-conventions.cjs");
 
 const HELP = `
 ${style.bold("npm run branch")} — feature branches
@@ -60,23 +61,18 @@ Known prefixes: ${KNOWN_PREFIXES.join(", ")}
 `;
 
 /**
- * Normalise a branch name into `<prefix>/<kebab-case>`.
+ * Normalise a branch name into `<prefix>/<kebab-case>`, or refuse.
+ *
+ * The convention lives in `scripts/lib/git-conventions.cjs`, shared with the
+ * `branch-convention` hook so the two cannot drift.
  *
  * @param {string} raw - What the caller typed.
  * @returns {string} The normalised name.
  */
 function normalizeName(raw) {
-  const input = String(raw).trim();
-  const [maybePrefix, ...rest] = input.split("/");
-  const hasPrefix = rest.length > 0 && KNOWN_PREFIXES.includes(maybePrefix.toLowerCase());
-  const prefix = hasPrefix ? maybePrefix.toLowerCase() : "feat";
-  const body = (hasPrefix ? rest.join("/") : input)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  if (!body) fail("the name is empty after normalisation — use letters and digits.", ExitCode.USAGE);
-  return `${prefix}/${body}`;
+  const { name, reason } = normalizeBranchName(raw);
+  if (!name) fail(reason, ExitCode.USAGE);
+  return name;
 }
 
 /**
