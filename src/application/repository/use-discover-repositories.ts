@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { LocatedRepository } from "@/domain/repository";
+import { sortByRecency, type LocatedRepository } from "@/domain/repository";
 import { logWarn } from "@/lib/log";
 
 import { useServices } from "../services-context";
@@ -11,11 +11,12 @@ export type DiscoveryStatus = "idle" | "scanning" | "done";
 
 /** What the picker gets to work with. */
 export interface Discovery {
-  /** The roots the backend suggests; loaded once. */
+  /** The folders a scan covers, as the user chose them; remembered. */
   roots: string[];
-  /** The subset of `roots` the next scan covers. */
-  selectedRoots: string[];
-  toggleRoot(root: string): void;
+  /** Ask for more folders through the picker and scan them. */
+  addRoots(): Promise<void>;
+  removeRoot(root: string): void;
+  /** Newest commit first; fills while a scan runs. */
   found: LocatedRepository[];
   status: DiscoveryStatus;
   error: string | null;
@@ -23,56 +24,78 @@ export interface Discovery {
 }
 
 /**
- * Use case: find the repositories on this machine.
+ * Use case: find the repositories in the folders the user chose.
  *
- * Loads the default roots on mount and scans only on request — a scan spawns
- * one git process per repository, which is not something to do behind the
- * user's back every time the picker mounts.
+ * Scans on mount when folders are remembered, and again after one is added —
+ * a scan is cheap (milliseconds for the walk, one git process per repository)
+ * and the list arriving unasked is what makes the picker feel like it already
+ * knows the machine. It never guesses a folder itself.
  */
 export function useDiscoverRepositories(): Discovery {
-  const { repositories } = useServices();
-  const [roots, setRoots] = useState<string[]>([]);
-  const [selectedRoots, setSelectedRoots] = useState<string[]>([]);
+  const { repositories, workspace, folders } = useServices();
+  const [roots, setRoots] = useState<string[]>(() => workspace.readScanRoots());
   const [found, setFound] = useState<LocatedRepository[]>([]);
   const [status, setStatus] = useState<DiscoveryStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A scan that was superseded by a newer one must not append to its list.
+  const generation = useRef(0);
 
+  const scanRoots = useCallback(
+    async (targets: string[]) => {
+      const mine = ++generation.current;
+      setFound([]);
+      setError(null);
+      if (targets.length === 0) {
+        setStatus("idle");
+        return;
+      }
+      setStatus("scanning");
+      try {
+        await repositories.discover(targets, (repository) => {
+          if (generation.current !== mine) return;
+          setFound((current) => sortByRecency([...current, repository]));
+        });
+        if (generation.current === mine) setStatus("done");
+      } catch (e) {
+        logWarn("discover.scan.failed", { error: e });
+        if (generation.current === mine) {
+          setError(describeRepositoryError(e as RepositoryError));
+          setStatus("idle");
+        }
+      }
+    },
+    [repositories],
+  );
+
+  const scan = useCallback(() => scanRoots(roots), [scanRoots, roots]);
+
+  // Only the first mount scans unasked; later root changes trigger their own
+  // scan in `addRoots` and `removeRoot`, and must not run twice.
+  const firstMount = useRef(true);
   useEffect(() => {
-    let cancelled = false;
-    repositories
-      .defaultRoots()
-      .then((r) => {
-        if (cancelled) return;
-        setRoots(r);
-        setSelectedRoots(r);
-      })
-      .catch((e: RepositoryError) => {
-        logWarn("discover.roots.failed", { error: e });
-        if (!cancelled) setError(describeRepositoryError(e));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repositories]);
+    if (!firstMount.current) return;
+    firstMount.current = false;
+    void scanRoots(roots);
+  }, [scanRoots, roots]);
 
-  const toggleRoot = useCallback((root: string) => {
-    setSelectedRoots((current) =>
-      current.includes(root) ? current.filter((r) => r !== root) : [...current, root],
-    );
-  }, []);
+  const addRoots = useCallback(async () => {
+    const picked = await folders.pickFolders("Choose folders to scan for repositories");
+    const next = [...roots, ...picked.filter((p) => !roots.includes(p))];
+    if (next.length === roots.length) return;
+    setRoots(next);
+    workspace.writeScanRoots(next);
+    await scanRoots(next);
+  }, [folders, roots, workspace, scanRoots]);
 
-  const scan = useCallback(async () => {
-    setStatus("scanning");
-    setError(null);
-    try {
-      setFound(await repositories.discover(selectedRoots));
-      setStatus("done");
-    } catch (e) {
-      logWarn("discover.scan.failed", { error: e });
-      setError(describeRepositoryError(e as RepositoryError));
-      setStatus("idle");
-    }
-  }, [repositories, selectedRoots]);
+  const removeRoot = useCallback(
+    (root: string) => {
+      const next = roots.filter((r) => r !== root);
+      setRoots(next);
+      workspace.writeScanRoots(next);
+      void scanRoots(next);
+    },
+    [roots, workspace, scanRoots],
+  );
 
-  return { roots, selectedRoots, toggleRoot, found, status, error, scan };
+  return { roots, addRoots, removeRoot, found, status, error, scan };
 }

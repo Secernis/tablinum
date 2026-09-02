@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 
 import type { RepositoryError, RepositoryGateway } from "@/application/repository/gateway";
 import type { OpenedRepository } from "@/domain/history";
@@ -8,7 +8,6 @@ import type { ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto } from "./dto"
 
 /** The command names, as registered in the backend's composition root. */
 const COMMANDS = {
-  defaultRoots: "default_roots",
   discover: "discover_repositories",
   open: "open_repository",
 } as const;
@@ -59,11 +58,15 @@ function toError(reason: unknown): RepositoryError {
 /** The gateway backed by Tauri commands. */
 export function createTauriRepositoryGateway(): RepositoryGateway {
   return {
-    defaultRoots: () => invoke<string[]>(COMMANDS.defaultRoots).catch((e) => Promise.reject(toError(e))),
-    discover: (roots) =>
-      invoke<LocatedRepositoryDto[]>(COMMANDS.discover, { roots })
-        .then((list) => list.map(toLocated))
-        .catch((e) => Promise.reject(toError(e))),
+    discover(roots, onFound) {
+      // A channel rather than an event: it is scoped to this one call, so two
+      // overlapping scans cannot feed each other's listeners.
+      const onFoundChannel = new Channel<LocatedRepositoryDto>();
+      onFoundChannel.onmessage = (dto) => onFound(toLocated(dto));
+      return invoke<number>(COMMANDS.discover, { roots, onFound: onFoundChannel }).catch((e) =>
+        Promise.reject(toError(e)),
+      );
+    },
     open: (path) =>
       invoke<OpenedRepositoryDto>(COMMANDS.open, { path })
         .then(toOpened)

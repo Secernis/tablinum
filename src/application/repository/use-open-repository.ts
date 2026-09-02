@@ -4,13 +4,15 @@ import type { OpenedRepository } from "@/domain/history";
 import { logWarn } from "@/lib/log";
 
 import { useServices } from "../services-context";
-import type { RecentRepositoriesStore } from "../workspace/recent-repositories-store";
+import type { WorkspaceStore } from "../workspace/workspace-store";
 import { describeRepositoryError, type RepositoryError } from "./gateway";
 
 /** What the picker needs to open one repository at a time. */
 export interface Opener {
   /** Resolves to null when opening failed; `error` then says why. */
   open(path: string): Promise<OpenedRepository | null>;
+  /** Ask for a folder through the picker, then open it. Null when cancelled or failed. */
+  openFromDialog(): Promise<OpenedRepository | null>;
   /** The path currently being opened, or null. */
   opening: string | null;
   error: string | null;
@@ -25,7 +27,7 @@ export interface Opener {
  * would produce a recent list that lies.
  */
 export function useOpenRepository(): Opener {
-  const { repositories, recentRepositories } = useServices();
+  const { repositories, workspace, folders } = useServices();
   const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function useOpenRepository(): Opener {
       setError(null);
       try {
         const opened = await repositories.open(path);
-        remember(recentRepositories, opened);
+        remember(workspace, opened);
         return opened;
       } catch (e) {
         logWarn("repository.open.failed", { path, error: e });
@@ -45,17 +47,22 @@ export function useOpenRepository(): Opener {
         setOpening(null);
       }
     },
-    [repositories, recentRepositories],
+    [repositories, workspace],
   );
 
-  return { open, opening, error, clearError: () => setError(null) };
+  const openFromDialog = useCallback(async () => {
+    const path = await folders.pickFolder("Open a git repository");
+    return path ? open(path) : null;
+  }, [folders, open]);
+
+  return { open, openFromDialog, opening, error, clearError: () => setError(null) };
 }
 
 /** How many repositories the recent list keeps. */
 const RECENT_LIMIT = 8;
 
-function remember(store: RecentRepositoriesStore, opened: OpenedRepository) {
+function remember(store: WorkspaceStore, opened: OpenedRepository) {
   const { path, name } = opened.repository;
-  const rest = store.read().filter((r) => r.path !== path);
-  store.write([{ path, name, openedAt: Date.now() }, ...rest].slice(0, RECENT_LIMIT));
+  const rest = store.readRecent().filter((r) => r.path !== path);
+  store.writeRecent([{ path, name, openedAt: Date.now() }, ...rest].slice(0, RECENT_LIMIT));
 }

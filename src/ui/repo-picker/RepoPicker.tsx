@@ -1,7 +1,7 @@
-import { Folder1, Reload, Search1, Xmark } from "@tailgrids/icons";
-import { useState, type FormEvent } from "react";
+import { Folder1, FolderPlus, Reload, Search1, Xmark } from "@tailgrids/icons";
+import { useState } from "react";
 
-import type { RecentRepository } from "@/application/workspace/recent-repositories-store";
+import type { RecentRepository } from "@/application/workspace/workspace-store";
 import { matchesQuery, type LocatedRepository } from "@/domain/repository";
 import { Button } from "@/ui/shared/Button";
 import { Notice } from "@/ui/shared/Notice";
@@ -13,9 +13,10 @@ export interface RepoPickerProps {
   recent: RecentRepository[];
   onForgetRecent(path: string): void;
 
+  /** The folders a scan covers, as the user chose them. */
   roots: string[];
-  selectedRoots: string[];
-  onToggleRoot(root: string): void;
+  onAddRoots(): void;
+  onRemoveRoot(root: string): void;
   found: LocatedRepository[];
   scanStatus: "idle" | "scanning" | "done";
   onScan(): void;
@@ -23,6 +24,8 @@ export interface RepoPickerProps {
   /** The path currently being opened, or null. */
   opening: string | null;
   onOpen(path: string): void;
+  /** Ask for a folder through the native dialog. */
+  onOpenFromDialog(): void;
 
   error: string | null;
 }
@@ -31,28 +34,28 @@ export interface RepoPickerProps {
  * The first screen: choose the repository to read.
  *
  * Three ways in, in the order a returning user needs them — what was open last
- * time, what a scan of the usual folders finds, and a path typed by hand for
- * everything else. Presentational only: the data arrives through props, so the
- * screen can be rendered against any source.
+ * time, what the folders they chose contain, and the native folder dialog for
+ * everything else. Presentational only: the data arrives through props, so
+ * the screen can be rendered against any source.
  */
 export function RepoPicker(props: RepoPickerProps) {
   const { recent, onForgetRecent, opening, onOpen, error } = props;
   const [query, setQuery] = useState("");
-  const [manualPath, setManualPath] = useState("");
+  const busy = opening !== null;
 
   const visible = props.found.filter((r) => matchesQuery(r, query));
 
-  function submitManual(event: FormEvent) {
-    event.preventDefault();
-    const path = manualPath.trim();
-    if (path) onOpen(path);
-  }
-
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <header>
-        <h2 className="font-[family-name:var(--font-display)] text-2xl">Open a repository</h2>
-        <p className="mt-1 text-sm text-muted">Tablinum reads the history; it never writes to the repository.</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-2xl">Open a repository</h2>
+          <p className="mt-1 text-sm text-muted">Tablinum reads the history; it never writes to the repository.</p>
+        </div>
+        <Button variant="primary" onClick={props.onOpenFromDialog} disabled={busy}>
+          <Folder1 className="size-4" />
+          Open folder…
+        </Button>
       </header>
 
       {error && <Notice tone="error">{error}</Notice>}
@@ -68,7 +71,7 @@ export function RepoPicker(props: RepoPickerProps) {
                 <button
                   type="button"
                   onClick={() => onOpen(r.path)}
-                  disabled={opening !== null}
+                  disabled={busy}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   <Folder1 className="size-4 shrink-0 text-muted" />
@@ -80,14 +83,7 @@ export function RepoPicker(props: RepoPickerProps) {
                     {opening === r.path ? "Opening…" : formatRelative(r.openedAt / 1000)}
                   </span>
                 </button>
-                <button
-                  type="button"
-                  aria-label={`Forget ${r.name}`}
-                  onClick={() => onForgetRecent(r.path)}
-                  className="rounded p-1 text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                >
-                  <Xmark className="size-4" />
-                </button>
+                <IconButton label={`Forget ${r.name}`} onClick={() => onForgetRecent(r.path)} />
               </li>
             ))}
           </ul>
@@ -97,21 +93,25 @@ export function RepoPicker(props: RepoPickerProps) {
       <section aria-labelledby="scan-heading" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 id="scan-heading" className="text-xs uppercase tracking-widest text-muted">
-            On this machine
+            In your folders
           </h3>
-          <Button
-            variant="primary"
-            onClick={props.onScan}
-            disabled={props.scanStatus === "scanning" || props.selectedRoots.length === 0}
-          >
-            <Reload className={cn("size-4", props.scanStatus === "scanning" && "animate-spin")} />
-            {props.scanStatus === "scanning" ? "Scanning…" : props.scanStatus === "done" ? "Scan again" : "Scan"}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={props.onAddRoots} disabled={busy}>
+              <FolderPlus className="size-4" />
+              Add folder…
+            </Button>
+            {props.roots.length > 0 && (
+              <Button onClick={props.onScan} disabled={busy || props.scanStatus === "scanning"}>
+                <Reload className={cn("size-4", props.scanStatus === "scanning" && "animate-spin")} />
+                {props.scanStatus === "scanning" ? "Scanning…" : "Rescan"}
+              </Button>
+            )}
+          </div>
         </div>
 
-        <RootChips roots={props.roots} selected={props.selectedRoots} onToggle={props.onToggleRoot} />
+        <RootChips roots={props.roots} onRemove={props.onRemoveRoot} />
 
-        {props.scanStatus === "done" && (
+        {props.found.length > 0 && (
           <label className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 focus-within:border-accent">
             <Search1 className="size-4 text-muted" />
             <input
@@ -125,6 +125,7 @@ export function RepoPicker(props: RepoPickerProps) {
         )}
 
         <CandidateList
+          hasRoots={props.roots.length > 0}
           status={props.scanStatus}
           candidates={visible}
           totalFound={props.found.length}
@@ -132,79 +133,71 @@ export function RepoPicker(props: RepoPickerProps) {
           onOpen={onOpen}
         />
       </section>
-
-      <section aria-labelledby="path-heading">
-        <h3 id="path-heading" className="mb-3 text-xs uppercase tracking-widest text-muted">
-          Or a path
-        </h3>
-        <form onSubmit={submitManual} className="flex gap-2">
-          <input
-            type="text"
-            value={manualPath}
-            onChange={(e) => setManualPath(e.target.value)}
-            placeholder="C:\Users\you\projects\name"
-            spellCheck={false}
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          />
-          <Button type="submit" disabled={opening !== null || manualPath.trim() === ""}>
-            {opening === manualPath.trim() ? "Opening…" : "Open"}
-          </Button>
-        </form>
-      </section>
     </div>
   );
 }
 
-function RootChips({ roots, selected, onToggle }: { roots: string[]; selected: string[]; onToggle(root: string): void }) {
-  if (roots.length === 0) {
-    return <p className="text-sm text-muted">No usual code folders found under your home directory.</p>;
-  }
+function IconButton({ label, onClick }: { label: string; onClick(): void }) {
   return (
-    <ul className="flex flex-wrap gap-2" aria-label="Folders to scan">
-      {roots.map((root) => {
-        const on = selected.includes(root);
-        return (
-          <li key={root}>
-            <button
-              type="button"
-              aria-pressed={on}
-              onClick={() => onToggle(root)}
-              title={root}
-              className={cn(
-                "rounded-full border px-3 py-1 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                on ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:border-accent",
-              )}
-            >
-              {lastSegment(root)}
-            </button>
-          </li>
-        );
-      })}
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="rounded p-1 text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      <Xmark className="size-4" />
+    </button>
+  );
+}
+
+function RootChips({ roots, onRemove }: { roots: string[]; onRemove(root: string): void }) {
+  if (roots.length === 0) return null;
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label="Folders being scanned">
+      {roots.map((root) => (
+        <li
+          key={root}
+          title={root}
+          className="flex items-center gap-1 rounded-full border border-accent bg-accent-soft py-1 pl-3 pr-1 text-xs text-accent"
+        >
+          {lastSegment(root)}
+          <IconButton label={`Stop scanning ${root}`} onClick={() => onRemove(root)} />
+        </li>
+      ))}
     </ul>
   );
 }
 
 function CandidateList({
+  hasRoots,
   status,
   candidates,
   totalFound,
   opening,
   onOpen,
 }: {
+  hasRoots: boolean;
   status: "idle" | "scanning" | "done";
   candidates: LocatedRepository[];
   totalFound: number;
   opening: string | null;
   onOpen(path: string): void;
 }) {
-  if (status === "idle") {
-    return <Notice tone="muted">Pick the folders above and scan to list the repositories inside them.</Notice>;
-  }
-  if (status === "scanning") {
-    return <Notice tone="muted">Looking for repositories…</Notice>;
+  if (!hasRoots) {
+    return (
+      <Notice tone="muted">
+        Add the folders you keep your projects in. Tablinum lists every repository inside them, and remembers the
+        folders for next time.
+      </Notice>
+    );
   }
   if (totalFound === 0) {
-    return <Notice tone="muted">No repositories in the selected folders. Try another folder, or a path below.</Notice>;
+    return (
+      <Notice tone="muted">
+        {status === "scanning" ? "Looking for repositories…" : "No repositories in these folders."}
+      </Notice>
+    );
   }
   if (candidates.length === 0) {
     return <Notice tone="muted">Nothing matches the filter.</Notice>;

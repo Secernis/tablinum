@@ -7,12 +7,6 @@ use crate::domain::repository::RepoPath;
 #[derive(Debug, Default, Clone, Copy)]
 pub struct FsLocator;
 
-/// Folders under the home directory where people keep code, checked for
-/// existence at scan time. Order is the order the picker offers them in.
-const HOME_CANDIDATES: &[&str] = &[
-    "Desktop", "Documents", "dev", "src", "projects", "code", "repos", "git", "GitHub", "work",
-];
-
 /// Directory names never worth descending into.
 ///
 /// Dependency trees and build output are the bulk of most project folders and
@@ -29,12 +23,6 @@ const SKIP: &[&str] = &[
 /// can hold a hundred thousand folders. Past this the scan stops and reports
 /// what it has, which is a shorter list rather than a hung window.
 const VISIT_BUDGET: usize = 30_000;
-
-fn home_dir() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE")
-        .or_else(|| std::env::var_os("HOME"))
-        .map(PathBuf::from)
-}
 
 fn is_repository(dir: &Path) -> bool {
     // `.git` is a directory in a normal checkout and a file in a worktree or
@@ -82,21 +70,6 @@ fn walk(dir: &Path, depth: usize, max_depth: usize, budget: &mut usize, out: &mu
 }
 
 impl RepositoryLocator for FsLocator {
-    fn default_roots(&self) -> Vec<PathBuf> {
-        let Some(home) = home_dir() else {
-            return Vec::new();
-        };
-        let mut seen = std::collections::HashSet::new();
-        HOME_CANDIDATES
-            .iter()
-            .map(|c| home.join(c))
-            .filter(|p| p.is_dir())
-            // Windows folds case, so `code` and `Code` are one folder listed
-            // twice unless the key is folded too.
-            .filter(|p| seen.insert(p.to_string_lossy().to_lowercase()))
-            .collect()
-    }
-
     fn locate(&self, roots: &[PathBuf], max_depth: usize) -> Vec<RepoPath> {
         let mut out = Vec::new();
         let mut budget = VISIT_BUDGET;

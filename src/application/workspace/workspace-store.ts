@@ -7,13 +7,17 @@ export interface RecentRepository {
 }
 
 /**
- * The port for what the workspace remembers between sessions.
+ * The port for what the workspace remembers between sessions: the folders the
+ * user scans, and the repositories they opened.
  *
  * Synchronous on purpose: the only real implementation is local storage, and
  * a promise here would make every consumer handle a loading state for a value
  * that is available before the first frame.
  */
-export interface RecentRepositoriesStore {
-  read(): RecentRepository[];
-  write(entries: RecentRepository[]): void;
+export interface WorkspaceStore {
+  readRecent(): RecentRepository[];
+  writeRecent(entries: RecentRepository[]): void;
+  /** The folders a scan covers, as the user chose them. */
+  readScanRoots(): string[];
+  writeScanRoots(roots: string[]): void;
 }

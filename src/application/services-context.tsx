@@ -1,12 +1,14 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import type { RepositoryGateway } from "./repository/gateway";
-import type { RecentRepositoriesStore } from "./workspace/recent-repositories-store";
+import type { FolderPicker } from "./workspace/folder-picker";
+import type { WorkspaceStore } from "./workspace/workspace-store";
 
 /** Every port the use cases need, provided once at the composition root. */
 export interface Services {
   repositories: RepositoryGateway;
-  recentRepositories: RecentRepositoriesStore;
+  workspace: WorkspaceStore;
+  folders: FolderPicker;
 }
 
 const ServicesContext = createContext<Services | null>(null);

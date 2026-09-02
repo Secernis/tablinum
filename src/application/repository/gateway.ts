@@ -38,10 +38,12 @@ export function describeRepositoryError(error: RepositoryError): string {
  * double has to provide. Widening it is a decision.
  */
 export interface RepositoryGateway {
-  /** Where a scan starts when the user has not said. */
-  defaultRoots(): Promise<string[]>;
-  /** Every repository under `roots`; empty roots means the defaults. */
-  discover(roots: string[]): Promise<LocatedRepository[]>;
+  /**
+   * Every repository under `roots`, handed to `onFound` as each one is
+   * described. Resolves with the total once the scan is over. Rejects with a
+   * `RepositoryError`.
+   */
+  discover(roots: string[], onFound: (repository: LocatedRepository) => void): Promise<number>;
   /** Open the repository at `path` and summarize it. Rejects with a `RepositoryError`. */
   open(path: string): Promise<OpenedRepository>;
 }

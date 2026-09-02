@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::application::ports::RepositoryLocator;
+use tauri::ipc::Channel;
+
 use crate::application::{self, DiscoverRequest};
 use crate::infrastructure::filesystem::FsLocator;
 use crate::infrastructure::git_cli::GitCli;
@@ -8,42 +9,39 @@ use crate::interface::dto::{ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto}
 
 /// How deep a scan looks when the frontend does not say.
 ///
-/// Four levels covers `Desktop/Clients/Acme/repo`; deeper than that is usually
-/// a dependency tree, which the locator skips anyway.
+/// Four levels covers `Clients/Acme/repo` under a chosen folder; deeper than
+/// that is usually a dependency tree, which the locator skips anyway.
 const DEFAULT_MAX_DEPTH: usize = 4;
 
-/// The directories a scan starts from by default.
-#[tauri::command]
-pub async fn default_roots() -> Vec<String> {
-    FsLocator
-        .default_roots()
-        .into_iter()
-        .map(|p| p.display().to_string())
-        .collect()
-}
-
-/// Scan `roots` (or the defaults, when empty) for repositories.
+/// Scan `roots` for repositories, sending each one down `on_found` as it is
+/// described. Resolves with the total once the scan is over.
 ///
 /// Runs on the blocking pool: a scan walks directories and spawns git, and the
 /// async runtime's threads are for shuttling messages, not for waiting on
 /// disks.
 #[tauri::command]
-pub async fn discover_repositories(roots: Vec<String>, max_depth: Option<usize>) -> Vec<LocatedRepositoryDto> {
+pub async fn discover_repositories(
+    roots: Vec<String>,
+    max_depth: Option<usize>,
+    on_found: Channel<LocatedRepositoryDto>,
+) -> Result<usize, ErrorDto> {
     let request = DiscoverRequest {
         roots: roots.into_iter().map(PathBuf::from).collect(),
         max_depth: max_depth.unwrap_or(DEFAULT_MAX_DEPTH),
     };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        application::discover_repositories(&FsLocator, &GitCli, request)
+        application::discover_repositories(&FsLocator, &GitCli, request, &|located| {
+            // A send fails only when the frontend went away mid-scan; there is
+            // nobody left to tell, and the scan finishes on its own.
+            if let Err(e) = on_found.send(LocatedRepositoryDto::from(located)) {
+                log::warn!("discover.send.failed error={e}");
+            }
+        })
     })
     .await;
-    match joined {
-        Ok(found) => found.into_iter().map(LocatedRepositoryDto::from).collect(),
-        Err(e) => {
-            log::error!("discover.join.failed error={e}");
-            Vec::new()
-        }
-    }
+    joined.map_err(|e| ErrorDto::Failed {
+        message: format!("the scan did not finish: {e}"),
+    })
 }
 
 /// Open the repository at `path` and summarize it.

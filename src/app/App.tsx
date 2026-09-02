@@ -5,7 +5,8 @@ import { useOpenRepository } from "@/application/repository/use-open-repository"
 import { ServicesProvider, type Services } from "@/application/services-context";
 import { useRecentRepositories } from "@/application/workspace/use-recent-repositories";
 import type { OpenedRepository } from "@/domain/history";
-import { createLocalRecentRepositoriesStore } from "@/infrastructure/storage/recent-repositories-store";
+import { createLocalWorkspaceStore } from "@/infrastructure/storage/workspace-store";
+import { createTauriFolderPicker } from "@/infrastructure/tauri/folder-picker";
 import { createTauriRepositoryGateway } from "@/infrastructure/tauri/repository-gateway";
 import Logo from "@/lib/brand/Logo";
 import { RepoOverview } from "@/ui/repo-overview/RepoOverview";
@@ -21,7 +22,8 @@ import { ThemeToggle } from "./ThemeToggle";
  */
 const services: Services = {
   repositories: createTauriRepositoryGateway(),
-  recentRepositories: createLocalRecentRepositoriesStore(),
+  workspace: createLocalWorkspaceStore(),
+  folders: createTauriFolderPicker(),
 };
 
 type View = { kind: "pick" } | { kind: "repo"; opened: OpenedRepository };
@@ -69,8 +71,7 @@ function PickerScreen({ onOpened }: { onOpened(opened: OpenedRepository): void }
   const opener = useOpenRepository();
   const recents = useRecentRepositories();
 
-  async function open(path: string) {
-    const opened = await opener.open(path);
+  function settle(opened: OpenedRepository | null) {
     if (opened) {
       recents.refresh();
       onOpened(opened);
@@ -82,13 +83,14 @@ function PickerScreen({ onOpened }: { onOpened(opened: OpenedRepository): void }
       recent={recents.recent}
       onForgetRecent={recents.forget}
       roots={discovery.roots}
-      selectedRoots={discovery.selectedRoots}
-      onToggleRoot={discovery.toggleRoot}
+      onAddRoots={() => void discovery.addRoots()}
+      onRemoveRoot={discovery.removeRoot}
       found={discovery.found}
       scanStatus={discovery.status}
-      onScan={discovery.scan}
+      onScan={() => void discovery.scan()}
       opening={opener.opening}
-      onOpen={open}
+      onOpen={(path) => void opener.open(path).then(settle)}
+      onOpenFromDialog={() => void opener.openFromDialog().then(settle)}
       error={opener.error ?? discovery.error}
     />
   );

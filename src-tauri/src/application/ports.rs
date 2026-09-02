@@ -12,11 +12,10 @@ use crate::domain::repository::{HeadInfo, RepoPath, Repository};
 use super::AppError;
 
 /// Finds directories that look like repositories.
+///
+/// Deliberately no notion of a default root: where a person keeps their code
+/// is theirs to say, and a guess that is wrong reads as the app not working.
 pub trait RepositoryLocator: Sync {
-    /// Where a scan starts when the user has not said: the places a person
-    /// on this machine keeps their code.
-    fn default_roots(&self) -> Vec<PathBuf>;
-
     /// Every repository under `roots`, at most `max_depth` levels down.
     fn locate(&self, roots: &[PathBuf], max_depth: usize) -> Vec<RepoPath>;
 }

@@ -14,8 +14,10 @@ mod interface;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        // Native folder dialogs; the capability grants `dialog:allow-open`
+        // only, because opening is the one thing the picker asks the user for.
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            interface::commands::default_roots,
             interface::commands::discover_repositories,
             interface::commands::open_repository,
         ])

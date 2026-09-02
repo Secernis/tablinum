@@ -7,7 +7,7 @@ use super::ports::{HistorySource, RepositoryLocator};
 /// What to scan.
 #[derive(Debug, Clone)]
 pub struct DiscoverRequest {
-    /// Directories to search; empty means the locator's defaults.
+    /// Directories to search, as the user chose them.
     pub roots: Vec<PathBuf>,
     /// How deep below each root to look.
     pub max_depth: usize,
@@ -15,60 +15,63 @@ pub struct DiscoverRequest {
 
 /// Directories described at once per scan.
 ///
-/// Describing a repository costs a git process, and a desktop with fifty
+/// Describing a repository costs a git process, and a folder with fifty
 /// repositories would otherwise wait for fifty of them in a row. Eight keeps
-/// the machine responsive while the picker fills.
+/// the machine responsive while the list fills.
 const DESCRIBE_PARALLELISM: usize = 8;
 
-/// Find the repositories under the requested roots, ready to be listed.
+/// Find the repositories under the requested roots, handing each one to
+/// `found` as soon as it is described.
+///
+/// Streaming rather than returning a list, because the interface should fill
+/// while the scan runs — a list that appears all at once after a pause reads
+/// as the app hanging, and the order of arrival is the interface's to sort.
 ///
 /// A directory the locator found but the history source refuses (a stray
-/// `.git` folder, a permission problem) is dropped from the list, not turned
-/// into an error: one broken folder must not empty the whole picker. It is
-/// logged, so the omission can be traced when someone misses a repository.
+/// `.git` folder, a permission problem) is skipped, not turned into an error:
+/// one broken folder must not empty the whole list. It is logged, so the
+/// omission can be traced when someone misses a repository.
+///
+/// Returns how many repositories were handed over.
 pub fn discover_repositories(
     locator: &dyn RepositoryLocator,
     source: &dyn HistorySource,
     request: DiscoverRequest,
-) -> Vec<LocatedRepository> {
-    let roots = if request.roots.is_empty() {
-        locator.default_roots()
-    } else {
-        request.roots
-    };
-    let paths = locator.locate(&roots, request.max_depth);
-
-    let mut found = Vec::with_capacity(paths.len());
+    found: &(dyn Fn(LocatedRepository) + Sync),
+) -> usize {
+    let paths = locator.locate(&request.roots, request.max_depth);
+    let mut count = 0;
     for chunk in paths.chunks(DESCRIBE_PARALLELISM) {
-        let described: Vec<Option<LocatedRepository>> = std::thread::scope(|scope| {
+        let described: Vec<bool> = std::thread::scope(|scope| {
             let handles: Vec<_> = chunk
                 .iter()
                 .map(|path| {
-                    scope.spawn(move || match source.describe(path) {
-                        Ok(repository) => match source.head(&repository) {
-                            Ok(head) => Some(LocatedRepository { repository, head }),
+                    scope.spawn(move || {
+                        let repository = match source.describe(path) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                log::warn!("discover.describe.failed path={path} error={e}");
+                                return false;
+                            }
+                        };
+                        match source.head(&repository) {
+                            Ok(head) => {
+                                found(LocatedRepository { repository, head });
+                                true
+                            }
                             Err(e) => {
                                 log::warn!("discover.head.failed path={path} error={e}");
-                                None
+                                false
                             }
-                        },
-                        Err(e) => {
-                            log::warn!("discover.describe.failed path={path} error={e}");
-                            None
                         }
                     })
                 })
                 .collect();
-            handles
-                .into_iter()
-                .map(|h| h.join().unwrap_or_default())
-                .collect()
+            handles.into_iter().map(|h| h.join().unwrap_or(false)).collect()
         });
-        found.extend(described.into_iter().flatten());
+        count += described.into_iter().filter(|ok| *ok).count();
     }
-
-    LocatedRepository::sort_by_recency(&mut found);
-    found
+    count
 }
 
 #[cfg(test)]
@@ -77,14 +80,12 @@ mod tests {
     use crate::application::AppError;
     use crate::domain::history::HistorySummary;
     use crate::domain::repository::{HeadInfo, RepoPath, Repository};
+    use std::sync::Mutex;
 
     struct FixedLocator(Vec<RepoPath>);
     impl RepositoryLocator for FixedLocator {
-        fn default_roots(&self) -> Vec<PathBuf> {
-            vec![PathBuf::from("/default")]
-        }
         fn locate(&self, roots: &[PathBuf], _max_depth: usize) -> Vec<RepoPath> {
-            assert_eq!(roots, [PathBuf::from("/default")]);
+            assert_eq!(roots, [PathBuf::from("/chosen")]);
             self.0.clone()
         }
     }
@@ -114,15 +115,19 @@ mod tests {
     }
 
     #[test]
-    fn refused_directories_are_dropped_and_the_rest_sorted() {
+    fn refused_directories_are_skipped_and_the_rest_streamed() {
         let locator = FixedLocator(vec![path("aa"), path("stray"), path("bbbb")]);
         let source = RefusingSource { refuse: "stray" };
-        let found = discover_repositories(
+        let seen = Mutex::new(Vec::new());
+        let count = discover_repositories(
             &locator,
             &source,
-            DiscoverRequest { roots: vec![], max_depth: 3 },
+            DiscoverRequest { roots: vec![PathBuf::from("/chosen")], max_depth: 3 },
+            &|l| seen.lock().unwrap().push(l.repository.name()),
         );
-        let names: Vec<String> = found.iter().map(|l| l.repository.name()).collect();
-        assert_eq!(names, vec!["bbbb", "aa"]);
+        let mut names = seen.into_inner().unwrap();
+        names.sort();
+        assert_eq!(count, 2);
+        assert_eq!(names, vec!["aa", "bbbb"]);
     }
 }

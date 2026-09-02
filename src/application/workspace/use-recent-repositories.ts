@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { useServices } from "../services-context";
-import type { RecentRepository } from "./recent-repositories-store";
+import type { RecentRepository } from "./workspace-store";
 
 /** The recent list and the one edit a user makes to it. */
 export interface Recents {
@@ -13,18 +13,18 @@ export interface Recents {
 
 /** Use case: what was opened before. */
 export function useRecentRepositories(): Recents {
-  const { recentRepositories } = useServices();
-  const [recent, setRecent] = useState<RecentRepository[]>(() => recentRepositories.read());
+  const { workspace } = useServices();
+  const [recent, setRecent] = useState<RecentRepository[]>(() => workspace.readRecent());
 
-  const refresh = useCallback(() => setRecent(recentRepositories.read()), [recentRepositories]);
+  const refresh = useCallback(() => setRecent(workspace.readRecent()), [workspace]);
 
   const forget = useCallback(
     (path: string) => {
-      const next = recentRepositories.read().filter((r) => r.path !== path);
-      recentRepositories.write(next);
+      const next = workspace.readRecent().filter((r) => r.path !== path);
+      workspace.writeRecent(next);
       setRecent(next);
     },
-    [recentRepositories],
+    [workspace],
   );
 
   return { recent, forget, refresh };

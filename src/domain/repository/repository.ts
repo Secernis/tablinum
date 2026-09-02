@@ -35,3 +35,19 @@ export function matchesQuery(repository: LocatedRepository, query: string): bool
   if (!q) return true;
   return repository.name.toLowerCase().includes(q) || repository.path.toLowerCase().includes(q);
 }
+
+/**
+ * Order for the picker: most recently committed first, unborn last.
+ *
+ * Ties and unborn repositories fall back to the name so the order is stable
+ * between two scans — a list that reshuffles on every refresh is one the eye
+ * cannot search. Returns a new array; the input is left alone.
+ */
+export function sortByRecency(list: readonly LocatedRepository[]): LocatedRepository[] {
+  return [...list].sort((a, b) => {
+    const atA = a.headAt ?? Number.NEGATIVE_INFINITY;
+    const atB = b.headAt ?? Number.NEGATIVE_INFINITY;
+    if (atA !== atB) return atB - atA;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+}
