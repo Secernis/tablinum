@@ -1,13 +1,15 @@
+import { UI_LOCALE } from "./locale";
+
 /**
  * Time formatting for the interface, from epoch seconds as git reports them.
  *
- * Locale comes from the runtime, not from a setting: a desktop app renders in
- * the language the machine already speaks.
+ * Every formatter is built on `UI_LOCALE`, never on the runtime default — see
+ * `locale.ts` for why.
  */
 
-const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-const absolute = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
-const absoluteWithTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const relative = new Intl.RelativeTimeFormat(UI_LOCALE, { numeric: "auto" });
+const absolute = new Intl.DateTimeFormat(UI_LOCALE, { dateStyle: "medium" });
+const absoluteWithTime = new Intl.DateTimeFormat(UI_LOCALE, { dateStyle: "medium", timeStyle: "short" });
 
 /** Steps in descending order; the first one the distance exceeds is used. */
 const STEPS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
@@ -29,12 +31,12 @@ export function formatRelative(epochSeconds: number, nowMs = Date.now()): string
   return relative.format(Math.round(delta), "second");
 }
 
-/** "2 Sep 2026" in the machine's locale. */
+/** "2 Sept 2026". */
 export function formatDate(epochSeconds: number): string {
   return absolute.format(new Date(epochSeconds * 1000));
 }
 
-/** "2 Sep 2026, 16:47" in the machine's locale. */
+/** "2 Sept 2026, 17:30". */
 export function formatDateTime(epochSeconds: number): string {
   return absoluteWithTime.format(new Date(epochSeconds * 1000));
 }

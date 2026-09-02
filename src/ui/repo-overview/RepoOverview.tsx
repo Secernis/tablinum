@@ -11,6 +11,7 @@ import {
 import type { OpenedRepository } from "@/domain/history";
 import { Button } from "@/ui/shared/Button";
 import { Notice } from "@/ui/shared/Notice";
+import { formatInteger } from "@/ui/shared/format-number";
 import { formatDate, formatDateTime, formatRelative } from "@/ui/shared/format-time";
 
 export interface RepoOverviewProps {
@@ -22,8 +23,6 @@ export interface RepoOverviewProps {
 // and red mean added and removed here, not Tablinum.
 const DIFF_VARS = { "--add": "#2ea043", "--del": "#f85149" } as React.CSSProperties;
 
-const numberFormat = new Intl.NumberFormat();
-
 /**
  * The first look at an opened repository: the totals and the newest commits.
  *
@@ -34,8 +33,8 @@ export function RepoOverview({ opened, onChangeRepository }: RepoOverviewProps) 
   const { repository, history } = opened;
 
   const stats = [
-    { label: "Commits", value: numberFormat.format(history.commitCount), detail: repository.branch ? `on ${repository.branch}` : "detached HEAD" },
-    { label: "Authors", value: numberFormat.format(history.authorCount), detail: "distinct emails" },
+    { label: "Commits", value: formatInteger(history.commitCount), detail: repository.branch ? `on ${repository.branch}` : "detached HEAD" },
+    { label: "Authors", value: formatInteger(history.authorCount), detail: "distinct emails" },
     {
       label: "First commit",
       value: history.firstCommitAt !== null ? formatDate(history.firstCommitAt) : "—",
@@ -103,10 +102,10 @@ export function RepoOverview({ opened, onChangeRepository }: RepoOverviewProps) 
                     {formatRelative(c.at)}
                   </TableCell>
                   <TableCell className="tabular text-right text-sm text-[var(--add)]">
-                    +{numberFormat.format(c.stats.insertions)}
+                    +{formatInteger(c.stats.insertions)}
                   </TableCell>
                   <TableCell className="tabular text-right text-sm text-[var(--del)]">
-                    −{numberFormat.format(c.stats.deletions)}
+                    −{formatInteger(c.stats.deletions)}
                   </TableCell>
                 </TableRow>
               ))}
