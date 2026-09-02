@@ -35,6 +35,13 @@ and total duration; timeouts per week; every timeout listed with its limit and
 command. The categories are loose substring matches on the command line, meant
 to be sharpened per question.
 
+`session_context_cost.py <dir> [<dir>...]` — what the context size costs in
+latency and how it adds up. Needs numpy. Per request: median latency per 50k
+context bin for low-output requests, plus a least-squares fit. Per session and
+week: the accumulated context cost against total model time, using slopes read
+off the bin medians (constants at the top of the file, re-read them when the
+model or the harness changes).
+
 ## Known blind spots
 
 - Hook runtime is not recorded separately; PreToolUse hooks are inside the
