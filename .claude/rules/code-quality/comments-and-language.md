@@ -1,7 +1,8 @@
 # Language
 
-Enforced by: `english-comments` (write time), the `english-comments` sensor
-(verify), `language-guard` (Stop), `language-anchor` (UserPromptSubmit).
+Enforced by: `english-comments` and `english-ui-strings` (write time), the
+`english-comments` and `english-ui-strings` sensors (verify), `language-guard`
+(Stop), `language-anchor` (UserPromptSubmit).
 
 ## The split
 
@@ -11,7 +12,7 @@ Enforced by: `english-comments` (write time), the `english-comments` sensor
 | Code, identifiers, comments | English |
 | Commit subjects | English |
 | CHANGELOG entries | English |
-| User-facing strings in the app | a product decision, out of scope here |
+| User-facing strings in the app | English |
 
 This is one rule with two directions, and both get confused.
 
@@ -19,6 +20,15 @@ This is one rule with two directions, and both get confused.
 otherwise portable code is unreadable to everyone who is not the person who wrote
 it, and it is fine right up until it is not — at which point it is scattered
 through the whole tree.
+
+**The interface is English** — a product decision, made on 2026-09-02. It
+reaches the interface the same way it reaches comments: one label at a time,
+each fine on its own, until the picker greets a user in a language the product
+never chose. The gate scans JSX text and string literals under `src/` with the
+same quorum as the comment gate, and exempts what is not the app's own copy:
+stories, tests, `src/lib/brand/` and the vendored TailGrids components. When
+translations arrive, the strings move into a catalogue and the gate keeps
+judging the English default.
 
 **Chat is German** because that is what the user reads. The drift is real and
 gradual: a turn spent reading English source, English error messages and English
