@@ -123,3 +123,13 @@ Stated because a guard whose gaps are undocumented reads as stronger than it is:
 - **`secret-read` covers files, not the environment.** `env` and `printenv` are
   out of scope, and a script that reads `.env` internally is invisible from
   outside. The write prohibition is the load-bearing half.
+- **A crashed gate is fail-open, with four exceptions.** A rule that throws is
+  logged and skipped, so a bug in a style gate cannot lock the repository. Only
+  `secret-write`, `surface-protect`, `tauri-security` and `bash-gates` refuse on
+  a crash. Everything else passes, and the telemetry is the only place that
+  shows it.
+- **`TAB_HOOKS_DISABLED=1` switches every hook off.** It exists so that a
+  process a Stop rule spawns does not re-run the chain against the parent's
+  tree. The hook processes inherit Claude Code's environment, not the Bash
+  tool's, so the agent cannot set it — but anything that launches the session
+  can.
