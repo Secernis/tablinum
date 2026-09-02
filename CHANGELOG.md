@@ -28,12 +28,14 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A Claude Code statusline showing branch, dirty-file count, context usage, rate-limit pace and session duration
 - Choose the repository to read: pick a recent one, scan the folders you add, or open one through the native folder dialog
 - The overview shows the opened repository's real totals and its newest commits with their line counts
+- Each repository on the start page shows its commit count, lines of code, file count and a language bar
 
 ### Changed
 - The app opens with the repository picker instead of the scaffold status page
 - The window opens at 1200×800 and cannot shrink below 900×600, so the repository picker has room
 - Every page has a title bar with its actions on the right; the content sits as cards on the canvas
 - The start page is one list of the repositories you added, by folder or one at a time, newest commit first; skeleton rows show while a scan runs
+- Cards and the title bar carry a subtle glass material with tinted depth, in both themes
 
 ### Fixed
 - Dates, relative times and numbers render in English regardless of the system language

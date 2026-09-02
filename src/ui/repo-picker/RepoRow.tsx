@@ -12,6 +12,8 @@ export interface RepoRowProps {
   /** Right-aligned, in the mono face: a time, or "Opening…". */
   aside?: string;
   badge?: ReactNode;
+  /** Below the path: the numbers and the language bar. */
+  meta?: ReactNode;
   disabled?: boolean;
   onOpen(): void;
   /** When present, an ✕ that removes the row from its list. */
@@ -21,20 +23,32 @@ export interface RepoRowProps {
 
 /**
  * One repository in a list: name and branch on the first line, the head
- * subject on the second, the path on the third, the time on the right.
+ * subject on the second, the path on the third, the measurements below, the
+ * time on the right.
  *
- * Shared by the recent list and the scan results so the two read as one kind
- * of thing. The whole row is the button; the ✕ sits outside it so a removal
- * cannot also open.
+ * The whole row is the button; the ✕ sits outside it so a removal cannot
+ * also open. The hover surface belongs to the row, not the button, so the
+ * ✕ is inside the highlight rather than floating next to it.
  */
-export function RepoRow({ name, path, detail, aside, badge, disabled, onOpen, onRemove, removeLabel }: RepoRowProps) {
+export function RepoRow({
+  name,
+  path,
+  detail,
+  aside,
+  badge,
+  meta,
+  disabled,
+  onOpen,
+  onRemove,
+  removeLabel,
+}: RepoRowProps) {
   return (
-    <li className="flex items-center gap-2 border-b border-line last:border-b-0">
+    <li className="flex items-start gap-2 transition-colors duration-150 ease-out first:rounded-t-2xl last:rounded-b-2xl hover:bg-ink/6">
       <button
         type="button"
         onClick={onOpen}
         disabled={disabled}
-        className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-4 py-3 text-left transition hover:bg-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Folder1 className="mt-0.5 size-5 shrink-0 text-muted" />
         <span className="min-w-0 flex-1">
@@ -44,6 +58,7 @@ export function RepoRow({ name, path, detail, aside, badge, disabled, onOpen, on
           </span>
           {detail && <span className="block truncate text-sm text-muted">{detail}</span>}
           <span className="tabular block truncate text-xs text-muted">{path}</span>
+          {meta && <span className="mt-2.5 block">{meta}</span>}
         </span>
         {aside && <span className="tabular shrink-0 pt-0.5 text-xs text-muted">{aside}</span>}
       </button>
@@ -54,7 +69,7 @@ export function RepoRow({ name, path, detail, aside, badge, disabled, onOpen, on
           size="xs"
           aria-label={removeLabel ?? `Remove ${name}`}
           onPress={onRemove}
-          className="mr-2"
+          className="mr-2 mt-2"
         >
           <Xmark />
         </Button>

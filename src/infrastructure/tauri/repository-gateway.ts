@@ -19,6 +19,16 @@ function toLocated(dto: LocatedRepositoryDto): LocatedRepository {
     branch: dto.branch,
     headSubject: dto.headSubject,
     headAt: dto.headAt,
+    commitCount: dto.commitCount,
+    code: dto.code
+      ? {
+          files: dto.code.files,
+          code: dto.code.code,
+          comments: dto.code.comments,
+          blanks: dto.code.blanks,
+          languages: dto.code.languages.map((l) => ({ name: l.name, code: l.code })),
+        }
+      : null,
   };
 }
 

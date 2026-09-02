@@ -7,12 +7,27 @@
  * are allowed to differ.
  */
 
+export interface LanguageShareDto {
+  name: string;
+  code: number;
+}
+
+export interface CodeSizeDto {
+  files: number;
+  code: number;
+  comments: number;
+  blanks: number;
+  languages: LanguageShareDto[];
+}
+
 export interface LocatedRepositoryDto {
   path: string;
   name: string;
   branch: string | null;
   headSubject: string | null;
   headAt: number | null;
+  commitCount: number;
+  code: CodeSizeDto | null;
 }
 
 export interface CommitDto {

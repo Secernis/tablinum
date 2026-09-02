@@ -1,3 +1,5 @@
+import type { CodeSize } from "../analysis";
+
 /**
  * A repository the app has confirmed to be one.
  *
@@ -22,6 +24,10 @@ export interface LocatedRepository extends Repository {
   headSubject: string | null;
   /** Committer time of the newest commit, seconds since the epoch; null when unborn. */
   headAt: number | null;
+  /** Zero for a repository with no commits yet. */
+  commitCount: number;
+  /** Null when the code could not be measured; the row still renders. */
+  code: CodeSize | null;
 }
 
 /**
