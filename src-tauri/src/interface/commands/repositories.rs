@@ -5,6 +5,7 @@ use tauri::ipc::Channel;
 use crate::application::{self, DiscoverRequest};
 use crate::infrastructure::filesystem::FsLocator;
 use crate::infrastructure::git_cli::GitCli;
+use crate::infrastructure::tokei::TokeiCodeSize;
 use crate::interface::dto::{ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto};
 
 /// How deep a scan looks when the frontend does not say.
@@ -16,9 +17,9 @@ const DEFAULT_MAX_DEPTH: usize = 4;
 /// Scan `roots` for repositories, sending each one down `on_found` as it is
 /// described. Resolves with the total once the scan is over.
 ///
-/// Runs on the blocking pool: a scan walks directories and spawns git, and the
-/// async runtime's threads are for shuttling messages, not for waiting on
-/// disks.
+/// Runs on the blocking pool: a scan walks directories, spawns git and counts
+/// lines, and the async runtime's threads are for shuttling messages, not for
+/// waiting on disks.
 #[tauri::command]
 pub async fn discover_repositories(
     roots: Vec<String>,
@@ -30,7 +31,7 @@ pub async fn discover_repositories(
         max_depth: max_depth.unwrap_or(DEFAULT_MAX_DEPTH),
     };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        application::discover_repositories(&FsLocator, &GitCli, request, &|located| {
+        application::discover_repositories(&FsLocator, &GitCli, &TokeiCodeSize, request, &|located| {
             // A send fails only when the frontend went away mid-scan; there is
             // nobody left to tell, and the scan finishes on its own.
             if let Err(e) = on_found.send(LocatedRepositoryDto::from(located)) {

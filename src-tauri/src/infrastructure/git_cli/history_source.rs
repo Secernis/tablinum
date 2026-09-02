@@ -78,6 +78,14 @@ impl HistorySource for GitCli {
         }
     }
 
+    fn commit_count(&self, repository: &Repository) -> Result<u64, AppError> {
+        match runner::run(repository.path().as_path(), &["rev-list", "--count", "HEAD"]) {
+            Ok(out) => Ok(out.trim().parse().unwrap_or(0)),
+            Err(e) if Self::is_unborn(&e) => Ok(0),
+            Err(e) => Err(to_app_error(e)),
+        }
+    }
+
     fn summarize(&self, repository: &Repository, recent_limit: usize) -> Result<HistorySummary, AppError> {
         let Some(head) = self.head(repository)? else {
             return Ok(HistorySummary::empty());
@@ -85,7 +93,7 @@ impl HistorySource for GitCli {
         let cwd = repository.path().as_path();
         let git = |args: &[&str]| runner::run(cwd, args).map_err(to_app_error);
 
-        let commit_count = git(&["rev-list", "--count", "HEAD"])?.trim().parse().unwrap_or(0);
+        let commit_count = self.commit_count(repository)?;
         let author_count = parse::count_distinct_lines(&git(&["log", "--format=%aE", "HEAD"])?);
         let first_commit_at = parse::parse_oldest_timestamp(&git(&["log", "--max-parents=0", "--format=%ct", "HEAD"])?);
 

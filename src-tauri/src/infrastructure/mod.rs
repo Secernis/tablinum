@@ -6,3 +6,4 @@
 
 pub mod filesystem;
 pub mod git_cli;
+pub mod tokei;

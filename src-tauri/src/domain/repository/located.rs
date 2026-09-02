@@ -1,4 +1,5 @@
 use super::Repository;
+use crate::domain::analysis::CodeSize;
 
 /// The tip of a repository, as much as a list entry needs to say.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,15 +10,18 @@ pub struct HeadInfo {
     pub at: i64,
 }
 
-/// A repository found by a scan, with enough to choose it from a list.
+/// A repository on the start page, with enough to choose it from a list.
 ///
-/// Distinct from [`Repository`] because it carries the head — the one fact a
-/// user picks by ("which one did I touch last week?") — and because a list of
-/// forty of these has to be cheap. Everything else about the history is read
-/// only once one of them is opened.
+/// Distinct from [`Repository`] because it carries what a list row shows: the
+/// head (the one fact a user picks by), the commit count, and the size of the
+/// code. Everything else about the history is read once one of them is opened.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocatedRepository {
     pub repository: Repository,
     /// `None` for a repository with no commits yet.
     pub head: Option<HeadInfo>,
+    /// Zero for a repository with no commits yet.
+    pub commit_count: u64,
+    /// `None` when the code could not be measured; the row still renders.
+    pub code: Option<CodeSize>,
 }

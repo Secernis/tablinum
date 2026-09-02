@@ -1,8 +1,44 @@
 use serde::Serialize;
 
 use crate::application::{AppError, OpenedRepository};
+use crate::domain::analysis::CodeSize;
 use crate::domain::history::{Commit, HistorySummary};
 use crate::domain::repository::LocatedRepository;
+
+/// One language's share of the code.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageShareDto {
+    pub name: String,
+    pub code: u64,
+}
+
+/// The size of the code, when it could be measured.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodeSizeDto {
+    pub files: u64,
+    pub code: u64,
+    pub comments: u64,
+    pub blanks: u64,
+    pub languages: Vec<LanguageShareDto>,
+}
+
+impl From<CodeSize> for CodeSizeDto {
+    fn from(c: CodeSize) -> Self {
+        CodeSizeDto {
+            files: c.files,
+            code: c.code,
+            comments: c.comments,
+            blanks: c.blanks,
+            languages: c
+                .languages
+                .into_iter()
+                .map(|l| LanguageShareDto { name: l.name, code: l.code })
+                .collect(),
+        }
+    }
+}
 
 /// A repository in the picker's list.
 #[derive(Debug, Clone, Serialize)]
@@ -13,6 +49,8 @@ pub struct LocatedRepositoryDto {
     pub branch: Option<String>,
     pub head_subject: Option<String>,
     pub head_at: Option<i64>,
+    pub commit_count: u64,
+    pub code: Option<CodeSizeDto>,
 }
 
 impl From<LocatedRepository> for LocatedRepositoryDto {
@@ -27,6 +65,8 @@ impl From<LocatedRepository> for LocatedRepositoryDto {
             branch: l.repository.branch().map(str::to_string),
             head_subject,
             head_at,
+            commit_count: l.commit_count,
+            code: l.code.map(CodeSizeDto::from),
         }
     }
 }

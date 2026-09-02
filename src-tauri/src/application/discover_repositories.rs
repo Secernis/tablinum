@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::domain::repository::LocatedRepository;
 
-use super::ports::{HistorySource, RepositoryLocator};
+use super::ports::{CodeSizeSource, HistorySource, RepositoryLocator};
 
 /// What to scan.
 #[derive(Debug, Clone)]
@@ -15,9 +15,9 @@ pub struct DiscoverRequest {
 
 /// Directories described at once per scan.
 ///
-/// Describing a repository costs a git process, and a folder with fifty
-/// repositories would otherwise wait for fifty of them in a row. Eight keeps
-/// the machine responsive while the list fills.
+/// Describing a repository costs git processes and a line count, and a folder
+/// with fifty repositories would otherwise wait for fifty of them in a row.
+/// Eight keeps the machine responsive while the list fills.
 const DESCRIBE_PARALLELISM: usize = 8;
 
 /// Find the repositories under the requested roots, handing each one to
@@ -29,13 +29,15 @@ const DESCRIBE_PARALLELISM: usize = 8;
 ///
 /// A directory the locator found but the history source refuses (a stray
 /// `.git` folder, a permission problem) is skipped, not turned into an error:
-/// one broken folder must not empty the whole list. It is logged, so the
-/// omission can be traced when someone misses a repository.
+/// one broken folder must not empty the whole list. A code measurement that
+/// fails degrades to a row without a size. Both are logged, so the omission
+/// can be traced when someone misses something.
 ///
 /// Returns how many repositories were handed over.
 pub fn discover_repositories(
     locator: &dyn RepositoryLocator,
     source: &dyn HistorySource,
+    code: &dyn CodeSizeSource,
     request: DiscoverRequest,
     found: &(dyn Fn(LocatedRepository) + Sync),
 ) -> usize {
@@ -54,16 +56,34 @@ pub fn discover_repositories(
                                 return false;
                             }
                         };
-                        match source.head(&repository) {
-                            Ok(head) => {
-                                found(LocatedRepository { repository, head });
-                                true
-                            }
+                        let head = match source.head(&repository) {
+                            Ok(head) => head,
                             Err(e) => {
                                 log::warn!("discover.head.failed path={path} error={e}");
-                                false
+                                return false;
                             }
-                        }
+                        };
+                        let commit_count = match source.commit_count(&repository) {
+                            Ok(n) => n,
+                            Err(e) => {
+                                log::warn!("discover.count.failed path={path} error={e}");
+                                0
+                            }
+                        };
+                        let size = match code.measure(&repository) {
+                            Ok(size) => Some(size),
+                            Err(e) => {
+                                log::warn!("discover.measure.failed path={path} error={e}");
+                                None
+                            }
+                        };
+                        found(LocatedRepository {
+                            repository,
+                            head,
+                            commit_count,
+                            code: size,
+                        });
+                        true
                     })
                 })
                 .collect();
@@ -78,6 +98,7 @@ pub fn discover_repositories(
 mod tests {
     use super::*;
     use crate::application::AppError;
+    use crate::domain::analysis::CodeSize;
     use crate::domain::history::HistorySummary;
     use crate::domain::repository::{HeadInfo, RepoPath, Repository};
     use std::sync::Mutex;
@@ -105,8 +126,19 @@ mod tests {
             let at = repository.name().len() as i64;
             Ok(Some(HeadInfo { subject: "s".into(), at }))
         }
+        fn commit_count(&self, _r: &Repository) -> Result<u64, AppError> {
+            Ok(7)
+        }
         fn summarize(&self, _r: &Repository, _n: usize) -> Result<HistorySummary, AppError> {
             Ok(HistorySummary::empty())
+        }
+    }
+
+    /// Refuses to measure anything: a row must still arrive.
+    struct NoCode;
+    impl CodeSizeSource for NoCode {
+        fn measure(&self, _r: &Repository) -> Result<CodeSize, AppError> {
+            Err(AppError::Failed { message: "no counter".into() })
         }
     }
 
@@ -122,12 +154,13 @@ mod tests {
         let count = discover_repositories(
             &locator,
             &source,
+            &NoCode,
             DiscoverRequest { roots: vec![PathBuf::from("/chosen")], max_depth: 3 },
-            &|l| seen.lock().unwrap().push(l.repository.name()),
+            &|l| seen.lock().unwrap().push((l.repository.name(), l.commit_count, l.code.is_none())),
         );
-        let mut names = seen.into_inner().unwrap();
-        names.sort();
+        let mut rows = seen.into_inner().unwrap();
+        rows.sort();
         assert_eq!(count, 2);
-        assert_eq!(names, vec!["aa", "bbbb"]);
+        assert_eq!(rows, vec![("aa".to_string(), 7, true), ("bbbb".to_string(), 7, true)]);
     }
 }

@@ -4,5 +4,6 @@
 //! system. That is the point of the layer — a type here can be constructed in
 //! a unit test with no repository on disk.
 
+pub mod analysis;
 pub mod history;
 pub mod repository;

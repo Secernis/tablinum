@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 
+use crate::domain::analysis::CodeSize;
 use crate::domain::history::HistorySummary;
 use crate::domain::repository::{HeadInfo, RepoPath, Repository};
 
@@ -28,6 +29,15 @@ pub trait HistorySource: Sync {
     /// The newest commit, or `None` for a repository without commits.
     fn head(&self, repository: &Repository) -> Result<Option<HeadInfo>, AppError>;
 
+    /// How many commits HEAD reaches; zero for a repository without commits.
+    fn commit_count(&self, repository: &Repository) -> Result<u64, AppError>;
+
     /// Totals plus the `recent_limit` newest commits.
     fn summarize(&self, repository: &Repository, recent_limit: usize) -> Result<HistorySummary, AppError>;
+}
+
+/// Measures a repository's code.
+pub trait CodeSizeSource: Sync {
+    /// Lines by language, honouring the repository's own ignore rules.
+    fn measure(&self, repository: &Repository) -> Result<CodeSize, AppError>;
 }
