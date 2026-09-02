@@ -190,9 +190,16 @@ function score(name, blocked, shouldBlock, detail) {
  * @returns {{blocked: boolean, detail: string}} Verdict and first stderr line.
  */
 function dispatchCase(entry, event, payload) {
+  // The Stop chain runs verify with the hook kill-switch set so that nothing it
+  // spawns re-enters the chain. This suite IS the thing that must enter it: a
+  // dispatcher that exits 0 on the switch reports every case as "allow", and
+  // the suite would fail under the Stop hook while passing from a terminal.
+  const env = { ...process.env };
+  delete env.TAB_HOOKS_DISABLED;
   const res = spawnSync("node", [path.join(__dirname, entry)], {
     cwd: CWD,
     encoding: "utf8",
+    env,
     input: JSON.stringify({
       ...payload,
       hook_event_name: event,
