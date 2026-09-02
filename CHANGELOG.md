@@ -24,7 +24,7 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `npm run commit`, `npm run push`, `npm run release`, plus `npm run verify` as
   the single gate all of them share.
 - `npm run changelog` for recording a change the moment it is made.
-- Agent guardrails: 28 write-time gates and a 7-stage Stop chain covering branch protection, secrets, the Tauri capability surface, debt markers, comment language and the CHANGELOG duty
+- Agent guardrails: 29 write-time gates and a 7-stage Stop chain covering branch protection, secrets, the Tauri capability surface, debt markers, comment language and the CHANGELOG duty
 - A Claude Code statusline showing branch, dirty-file count, context usage, rate-limit pace and session duration
 - Choose the repository to read: pick a recent one, scan the folders you add, or open one through the native folder dialog
 - The overview shows the opened repository's real totals and its newest commits with their line counts
