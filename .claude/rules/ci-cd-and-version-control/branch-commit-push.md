@@ -1,8 +1,10 @@
 # Branch, commit, push
 
-Enforced by: `branch-protection`, `branch-create-guard`, `bash-gates`,
-`commit-explicit-paths`, `commit-scope`, `commit-reminder` (Stop). The rest of
-the Stop chain is described in [stop-chain.md](stop-chain.md).
+Enforced by: `branch-protection`, `branch-convention`, `branch-create-guard`,
+`bash-gates`, `commit-explicit-paths`, `commit-convention`, `commit-reminder`
+(Stop). The rest of the Stop chain is described in [stop-chain.md](stop-chain.md).
+The conventions themselves are single-sourced in `scripts/lib/git-conventions.cjs`,
+which the scripts and the hooks both read.
 
 ## Nothing is committed on `main`
 
@@ -22,6 +24,27 @@ started.
 
 Exempt on any branch: `CLAUDE.md`, `.claude/**`, `memory/**`. Those configure the
 tooling; they do not ship.
+
+## A branch is called `<prefix>/<kebab-case>`
+
+```
+feat/add-ssh-support   fix/crlf-parser   chore/agent-guardrails
+```
+
+Prefixes: `feat` `fix` `chore` `docs` `refactor` `perf` `test` `build` `ci`.
+The list is closed for the same reason the commit types are: a listing where
+some branches carry a kind and some do not cannot be filtered at all.
+
+`npm run branch -- <name>` normalises whatever it is given — `Add SSH support`
+becomes `feat/add-ssh-support`, a missing prefix becomes `feat/`. One thing it
+refuses instead of normalising: an unknown prefix such as `feature/foo`, which
+would otherwise be swallowed into `feat/feature-foo` without anyone noticing.
+
+**Raw branch creation is channelled**, like raw `git commit`: `git branch
+<name>`, `git checkout -b` and `git switch -c` are refused, because a branch
+made around the channel skips the name, the one-branch guard and the carry-along
+of uncommitted work — and looks identical afterwards. Switching to an existing
+branch stays free.
 
 ## One branch at a time
 

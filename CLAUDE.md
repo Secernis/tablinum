@@ -25,9 +25,11 @@ npm run push                   verify, then push
 node scripts/release.mjs <version> --run
 ```
 
-Raw `git commit`, `git push` and `git tag` are blocked. Each script does
-something the bare command cannot, and the raw version produces a result that
-looks identical having skipped all of it.
+Raw `git commit`, `git push`, `git tag` and raw branch creation (`git branch
+<name>`, `checkout -b`, `switch -c`) are blocked. Each script does something the
+bare command cannot, and the raw version produces a result that looks identical
+having skipped all of it. Branches are `<prefix>/<kebab-case>`; commits are
+`type(scope): title`. Both conventions live in `scripts/lib/git-conventions.cjs`.
 
 ## A commit is one reason to revert
 
