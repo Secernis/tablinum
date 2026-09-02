@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "@/ui/shared/Button";
+import { Button } from "@/components/tailgrids/core/button";
 
 /**
  * Light or dark, remembered per machine.
@@ -24,5 +24,9 @@ export function ThemeToggle() {
     }
   }
 
-  return <Button onClick={toggle}>{dark ? "Light" : "Dark"}</Button>;
+  return (
+    <Button variant="ghost" size="sm" onPress={toggle} className="w-full justify-start text-ink">
+      {dark ? "Switch to light" : "Switch to dark"}
+    </Button>
+  );
 }

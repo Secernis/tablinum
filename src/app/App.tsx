@@ -1,16 +1,19 @@
+import { ArrowLeft, DashboardSquare1, Folder1 } from "@tailgrids/icons";
 import { useState } from "react";
 
 import { useDiscoverRepositories } from "@/application/repository/use-discover-repositories";
 import { useOpenRepository } from "@/application/repository/use-open-repository";
 import { ServicesProvider, type Services } from "@/application/services-context";
 import { useRecentRepositories } from "@/application/workspace/use-recent-repositories";
+import { Button } from "@/components/tailgrids/core/button";
 import type { OpenedRepository } from "@/domain/history";
 import { createLocalWorkspaceStore } from "@/infrastructure/storage/workspace-store";
 import { createTauriFolderPicker } from "@/infrastructure/tauri/folder-picker";
 import { createTauriRepositoryGateway } from "@/infrastructure/tauri/repository-gateway";
-import Logo from "@/lib/brand/Logo";
 import { RepoOverview } from "@/ui/repo-overview/RepoOverview";
+import { PickerActions } from "@/ui/repo-picker/PickerActions";
 import { RepoPicker } from "@/ui/repo-picker/RepoPicker";
+import { AppShell, type NavItem } from "@/ui/shell/AppShell";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -26,72 +29,90 @@ const services: Services = {
   folders: createTauriFolderPicker(),
 };
 
-type View = { kind: "pick" } | { kind: "repo"; opened: OpenedRepository };
-
-/** The shell: header, and whichever screen the user is on. */
+/** The shell: sidebar, title bar, and whichever screen the user is on. */
 export default function App() {
   return (
     <ServicesProvider services={services}>
-      <Shell />
+      <Workspace />
     </ServicesProvider>
   );
 }
 
-function Shell() {
-  const [view, setView] = useState<View>({ kind: "pick" });
+type View = "repositories" | "overview";
 
-  return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <header className="flex items-center gap-4 border-b border-line px-8 py-5">
-        <Logo variant="mark" size={40} />
-        <div className="min-w-0 flex-1">
-          {/* --font-display: Lora, the chosen wordmark typeface */}
-          <h1 className="font-[family-name:var(--font-display)] text-xl leading-tight">Tablinum</h1>
-          <p className="truncate text-sm text-muted">
-            {view.kind === "repo" ? view.opened.repository.path : "Read Git histories, build analyses"}
-          </p>
-        </div>
-        <ThemeToggle />
-      </header>
+function Workspace() {
+  const [opened, setOpened] = useState<OpenedRepository | null>(null);
+  const [view, setView] = useState<View>("repositories");
 
-      <main className="mx-auto max-w-5xl px-8 py-10">
-        {view.kind === "pick" ? (
-          <PickerScreen onOpened={(opened) => setView({ kind: "repo", opened })} />
-        ) : (
-          <RepoOverview opened={view.opened} onChangeRepository={() => setView({ kind: "pick" })} />
-        )}
-      </main>
-    </div>
-  );
-}
+  const nav: NavItem[] = [
+    { id: "repositories", label: "Repositories", icon: <Folder1 />, active: view === "repositories" },
+    {
+      id: "overview",
+      label: "Overview",
+      icon: <DashboardSquare1 />,
+      active: view === "overview",
+      disabled: opened === null,
+    },
+  ];
 
-/** Wires the picker to its use cases; the picker itself stays presentational. */
-function PickerScreen({ onOpened }: { onOpened(opened: OpenedRepository): void }) {
   const discovery = useDiscoverRepositories();
   const opener = useOpenRepository();
   const recents = useRecentRepositories();
 
-  function settle(opened: OpenedRepository | null) {
-    if (opened) {
-      recents.refresh();
-      onOpened(opened);
-    }
+  function settle(result: OpenedRepository | null) {
+    if (!result) return;
+    recents.refresh();
+    setOpened(result);
+    setView("overview");
+  }
+
+  if (view === "overview" && opened) {
+    return (
+      <AppShell
+        nav={nav}
+        onNavigate={(id) => setView(id as View)}
+        footer={<ThemeToggle />}
+        title={opened.repository.name}
+        subtitle={opened.repository.path}
+        actions={
+          <Button variant="primary" appearance="outline" size="sm" onPress={() => setView("repositories")}>
+            <ArrowLeft />
+            Change repository
+          </Button>
+        }
+      >
+        <RepoOverview opened={opened} />
+      </AppShell>
+    );
   }
 
   return (
-    <RepoPicker
-      recent={recents.recent}
-      onForgetRecent={recents.forget}
-      roots={discovery.roots}
-      onAddRoots={() => void discovery.addRoots()}
-      onRemoveRoot={discovery.removeRoot}
-      found={discovery.found}
-      scanStatus={discovery.status}
-      onScan={() => void discovery.scan()}
-      opening={opener.opening}
-      onOpen={(path) => void opener.open(path).then(settle)}
-      onOpenFromDialog={() => void opener.openFromDialog().then(settle)}
-      error={opener.error ?? discovery.error}
-    />
+    <AppShell
+      nav={nav}
+      onNavigate={(id) => setView(id as View)}
+      footer={<ThemeToggle />}
+      title="Repositories"
+      subtitle="Choose the history to read"
+      actions={
+        <PickerActions
+          onAddRoots={() => void discovery.addRoots()}
+          onOpenFromDialog={() => void opener.openFromDialog().then(settle)}
+          disabled={opener.opening !== null}
+        />
+      }
+    >
+      <RepoPicker
+        recent={recents.recent}
+        onForgetRecent={recents.forget}
+        roots={discovery.roots}
+        onRemoveRoot={discovery.removeRoot}
+        found={discovery.found}
+        scanStatus={discovery.status}
+        onScan={() => void discovery.scan()}
+        opening={opener.opening}
+        onOpen={(path) => void opener.open(path).then(settle)}
+        error={opener.error ?? discovery.error}
+      />
+    </AppShell>
   );
 }

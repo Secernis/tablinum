@@ -1,0 +1,77 @@
+import { Folder1, Xmark } from "@tailgrids/icons";
+import type { ReactNode } from "react";
+
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
+
+export interface RepoRowProps {
+  name: string;
+  path: string;
+  /** Under the name: the head subject, or what stands in for it. */
+  detail?: string;
+  /** Right-aligned, in the mono face: a time, or "Opening…". */
+  aside?: string;
+  badge?: ReactNode;
+  disabled?: boolean;
+  onOpen(): void;
+  /** When present, an ✕ that removes the row from its list. */
+  onRemove?(): void;
+  removeLabel?: string;
+}
+
+/**
+ * One repository in a list: name and branch on the first line, the head
+ * subject on the second, the path on the third, the time on the right.
+ *
+ * Shared by the recent list and the scan results so the two read as one kind
+ * of thing. The whole row is the button; the ✕ sits outside it so a removal
+ * cannot also open.
+ */
+export function RepoRow({ name, path, detail, aside, badge, disabled, onOpen, onRemove, removeLabel }: RepoRowProps) {
+  return (
+    <li className="flex items-center gap-2 border-b border-line last:border-b-0">
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={disabled}
+        className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-4 py-3 text-left transition hover:bg-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Folder1 className="mt-0.5 size-5 shrink-0 text-muted" />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium text-ink">{name}</span>
+            {badge}
+          </span>
+          {detail && <span className="block truncate text-sm text-muted">{detail}</span>}
+          <span className="tabular block truncate text-xs text-muted">{path}</span>
+        </span>
+        {aside && <span className="tabular shrink-0 pt-0.5 text-xs text-muted">{aside}</span>}
+      </button>
+      {onRemove && (
+        <Button
+          variant="ghost"
+          iconOnly
+          size="xs"
+          aria-label={removeLabel ?? `Remove ${name}`}
+          onPress={onRemove}
+          className="mr-2"
+        >
+          <Xmark />
+        </Button>
+      )}
+    </li>
+  );
+}
+
+/** The branch pill, or the detached marker. */
+export function BranchBadge({ branch }: { branch: string | null }) {
+  return branch ? (
+    <Badge color="primary" size="sm" className="shrink-0 px-2">
+      {branch}
+    </Badge>
+  ) : (
+    <Badge color="gray" size="sm" className="shrink-0 px-2">
+      detached
+    </Badge>
+  );
+}

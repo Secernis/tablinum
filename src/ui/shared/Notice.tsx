@@ -19,8 +19,8 @@ export function Notice({ tone, children, className }: NoticeProps) {
     <p
       role={tone === "error" ? "alert" : undefined}
       className={cn(
-        "rounded-lg border px-3 py-2 text-sm",
-        tone === "error" ? "border-[var(--t-danger)] text-[var(--t-danger)]" : "border-line text-muted",
+        "rounded-lg border px-4 py-3 text-sm",
+        tone === "error" ? "border-danger bg-surface text-danger" : "border-line bg-surface text-muted",
         className,
       )}
     >

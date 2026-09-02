@@ -1,12 +1,18 @@
-import { Folder1, FolderPlus, Reload, Search1, Xmark } from "@tailgrids/icons";
+import { Reload, Search1, Xmark } from "@tailgrids/icons";
 import { useState } from "react";
 
+import { Badge } from "@/components/tailgrids/core/badge";
+import { Button } from "@/components/tailgrids/core/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Input } from "@/components/tailgrids/core/input";
+import { Skeleton } from "@/components/tailgrids/core/skeleton";
 import type { RecentRepository } from "@/application/workspace/workspace-store";
 import { matchesQuery, type LocatedRepository } from "@/domain/repository";
-import { Button } from "@/ui/shared/Button";
+import Logo from "@/lib/brand/Logo";
 import { Notice } from "@/ui/shared/Notice";
 import { formatRelative } from "@/ui/shared/format-time";
-import { cn } from "@/utils/cn";
+
+import { BranchBadge, RepoRow } from "./RepoRow";
 
 /** Everything the picker renders, handed in by the use cases. */
 export interface RepoPickerProps {
@@ -15,7 +21,6 @@ export interface RepoPickerProps {
 
   /** The folders a scan covers, as the user chose them. */
   roots: string[];
-  onAddRoots(): void;
   onRemoveRoot(root: string): void;
   found: LocatedRepository[];
   scanStatus: "idle" | "scanning" | "done";
@@ -24,8 +29,6 @@ export interface RepoPickerProps {
   /** The path currently being opened, or null. */
   opening: string | null;
   onOpen(path: string): void;
-  /** Ask for a folder through the native dialog. */
-  onOpenFromDialog(): void;
 
   error: string | null;
 }
@@ -33,202 +36,183 @@ export interface RepoPickerProps {
 /**
  * The first screen: choose the repository to read.
  *
- * Three ways in, in the order a returning user needs them — what was open last
- * time, what the folders they chose contain, and the native folder dialog for
- * everything else. Presentational only: the data arrives through props, so
- * the screen can be rendered against any source.
+ * The actions — "Add folder…" and "Open folder…" — live in the page title bar
+ * (see `PickerActions`), so this component is the content: what was open last
+ * time, and what the chosen folders contain. Presentational only.
  */
 export function RepoPicker(props: RepoPickerProps) {
-  const { recent, onForgetRecent, opening, onOpen, error } = props;
+  const { recent, onForgetRecent, roots, found, scanStatus, opening, onOpen, error } = props;
   const [query, setQuery] = useState("");
   const busy = opening !== null;
-
-  const visible = props.found.filter((r) => matchesQuery(r, query));
+  const visible = found.filter((r) => matchesQuery(r, query));
+  const firstRun = roots.length === 0 && recent.length === 0;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-2xl">Open a repository</h2>
-          <p className="mt-1 text-sm text-muted">Tablinum reads the history; it never writes to the repository.</p>
-        </div>
-        <Button variant="primary" onClick={props.onOpenFromDialog} disabled={busy}>
-          <Folder1 className="size-4" />
-          Open folder…
-        </Button>
-      </header>
-
+    <div className="mx-auto max-w-4xl space-y-6">
       {error && <Notice tone="error">{error}</Notice>}
 
+      {firstRun && <FirstRun />}
+
       {recent.length > 0 && (
-        <section aria-labelledby="recent-heading">
-          <h3 id="recent-heading" className="mb-3 text-xs uppercase tracking-widest text-muted">
-            Recent
-          </h3>
-          <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
-            {recent.map((r) => (
-              <li key={r.path} className="flex items-center gap-3 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => onOpen(r.path)}
+        <Card className="border border-line">
+          <CardHeader>
+            <CardTitle className="text-base">Recent</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <ul>
+              {recent.map((r) => (
+                <RepoRow
+                  key={r.path}
+                  name={r.name}
+                  path={r.path}
+                  aside={opening === r.path ? "Opening…" : formatRelative(r.openedAt / 1000)}
                   disabled={busy}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                >
-                  <Folder1 className="size-4 shrink-0 text-muted" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-ink">{r.name}</span>
-                    <span className="block truncate text-xs text-muted">{r.path}</span>
-                  </span>
-                  <span className="shrink-0 text-xs text-muted">
-                    {opening === r.path ? "Opening…" : formatRelative(r.openedAt / 1000)}
-                  </span>
-                </button>
-                <IconButton label={`Forget ${r.name}`} onClick={() => onForgetRecent(r.path)} />
-              </li>
-            ))}
-          </ul>
-        </section>
+                  onOpen={() => onOpen(r.path)}
+                  onRemove={() => onForgetRecent(r.path)}
+                  removeLabel={`Forget ${r.name}`}
+                />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
-      <section aria-labelledby="scan-heading" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 id="scan-heading" className="text-xs uppercase tracking-widest text-muted">
-            In your folders
-          </h3>
-          <div className="flex gap-2">
-            <Button onClick={props.onAddRoots} disabled={busy}>
-              <FolderPlus className="size-4" />
-              Add folder…
-            </Button>
-            {props.roots.length > 0 && (
-              <Button onClick={props.onScan} disabled={busy || props.scanStatus === "scanning"}>
-                <Reload className={cn("size-4", props.scanStatus === "scanning" && "animate-spin")} />
-                {props.scanStatus === "scanning" ? "Scanning…" : "Rescan"}
+      {roots.length > 0 && (
+        <Card className="border border-line">
+          <CardHeader>
+            <CardTitle className="text-base">In your folders</CardTitle>
+            <CardAction>
+              <Button
+                variant="ghost"
+                size="sm"
+                onPress={props.onScan}
+                disabled={busy || scanStatus === "scanning"}
+                aria-label="Scan the folders again"
+              >
+                <Reload className={scanStatus === "scanning" ? "animate-spin" : undefined} />
+                {scanStatus === "scanning" ? "Scanning…" : "Rescan"}
               </Button>
+            </CardAction>
+            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Folders being scanned">
+              {roots.map((root) => (
+                <li key={root}>
+                  <Badge color="primary" size="md" className="pl-3 pr-1" title={root}>
+                    {lastSegment(root)}
+                    <button
+                      type="button"
+                      aria-label={`Stop scanning ${root}`}
+                      onClick={() => props.onRemoveRoot(root)}
+                      className="rounded-full p-0.5 hover:bg-accent/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    >
+                      <Xmark className="size-3.5" />
+                    </button>
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+            {found.length > 0 && (
+              <div className="relative mt-4">
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={`Filter ${found.length} repositories`}
+                  aria-label="Filter repositories"
+                  className="h-10 w-full pl-10 text-sm"
+                />
+                <Search1 className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted" />
+              </div>
             )}
-          </div>
-        </div>
-
-        <RootChips roots={props.roots} onRemove={props.onRemoveRoot} />
-
-        {props.found.length > 0 && (
-          <label className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 focus-within:border-accent">
-            <Search1 className="size-4 text-muted" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Filter ${props.found.length} repositories`}
-              className="w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
+          </CardHeader>
+          <CardContent className="px-0 pb-0 pt-3">
+            <ScanResults
+              status={scanStatus}
+              candidates={visible}
+              totalFound={found.length}
+              opening={opening}
+              onOpen={onOpen}
             />
-          </label>
-        )}
-
-        <CandidateList
-          hasRoots={props.roots.length > 0}
-          status={props.scanStatus}
-          candidates={visible}
-          totalFound={props.found.length}
-          opening={opening}
-          onOpen={onOpen}
-        />
-      </section>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
-function IconButton({ label, onClick }: { label: string; onClick(): void }) {
+/**
+ * What a first-time user sees: the mark, one sentence, and where the two
+ * actions are. No buttons of its own — the title bar already has them, and a
+ * view carries exactly one filled button.
+ */
+function FirstRun() {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="rounded p-1 text-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-    >
-      <Xmark className="size-4" />
-    </button>
+    <Card className="border border-line">
+      <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+        <Logo variant="mark" size={56} />
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl text-ink">Read a Git history</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+            Add the folders you keep your projects in and Tablinum lists every repository inside them, or open a
+            single repository straight from its folder. Nothing is ever written to a repository.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function RootChips({ roots, onRemove }: { roots: string[]; onRemove(root: string): void }) {
-  if (roots.length === 0) return null;
-  return (
-    <ul className="flex flex-wrap gap-2" aria-label="Folders being scanned">
-      {roots.map((root) => (
-        <li
-          key={root}
-          title={root}
-          className="flex items-center gap-1 rounded-full border border-accent bg-accent-soft py-1 pl-3 pr-1 text-xs text-accent"
-        >
-          {lastSegment(root)}
-          <IconButton label={`Stop scanning ${root}`} onClick={() => onRemove(root)} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function CandidateList({
-  hasRoots,
+function ScanResults({
   status,
   candidates,
   totalFound,
   opening,
   onOpen,
 }: {
-  hasRoots: boolean;
   status: "idle" | "scanning" | "done";
   candidates: LocatedRepository[];
   totalFound: number;
   opening: string | null;
   onOpen(path: string): void;
 }) {
-  if (!hasRoots) {
-    return (
-      <Notice tone="muted">
-        Add the folders you keep your projects in. Tablinum lists every repository inside them, and remembers the
-        folders for next time.
-      </Notice>
-    );
-  }
+  if (totalFound === 0 && status === "scanning") return <SkeletonRows />;
   if (totalFound === 0) {
-    return (
-      <Notice tone="muted">
-        {status === "scanning" ? "Looking for repositories…" : "No repositories in these folders."}
-      </Notice>
-    );
+    return <p className="border-t border-line px-5 py-6 text-sm text-muted">No repositories in these folders.</p>;
   }
   if (candidates.length === 0) {
-    return <Notice tone="muted">Nothing matches the filter.</Notice>;
+    return <p className="border-t border-line px-5 py-6 text-sm text-muted">Nothing matches the filter.</p>;
   }
   return (
-    <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+    <ul className="border-t border-line">
       {candidates.map((r) => (
-        <li key={r.path}>
-          <button
-            type="button"
-            onClick={() => onOpen(r.path)}
-            disabled={opening !== null}
-            className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-raised focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
-          >
-            <Folder1 className="mt-0.5 size-4 shrink-0 text-muted" />
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2">
-                <span className="truncate text-sm text-ink">{r.name}</span>
-                {r.branch ? (
-                  <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">{r.branch}</span>
-                ) : (
-                  <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-muted">detached</span>
-                )}
-              </span>
-              <span className="block truncate text-xs text-muted">{r.headSubject ?? "No commits yet"}</span>
-              <span className="block truncate text-xs text-muted">{r.path}</span>
-            </span>
-            <span className="tabular shrink-0 text-xs text-muted">
-              {opening === r.path ? "Opening…" : r.headAt !== null ? formatRelative(r.headAt) : ""}
-            </span>
-          </button>
+        <RepoRow
+          key={r.path}
+          name={r.name}
+          path={r.path}
+          detail={r.headSubject ?? "No commits yet"}
+          badge={<BranchBadge branch={r.branch} />}
+          aside={opening === r.path ? "Opening…" : r.headAt !== null ? formatRelative(r.headAt) : undefined}
+          disabled={opening !== null}
+          onOpen={() => onOpen(r.path)}
+        />
+      ))}
+      {status === "scanning" && <SkeletonRows count={2} />}
+    </ul>
+  );
+}
+
+/** Rows the shape of a result, for the moment before the first one arrives. */
+function SkeletonRows({ count = 4 }: { count?: number }) {
+  return (
+    <ul aria-label="Scanning" className="border-t border-line">
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} className="flex items-start gap-3 border-b border-line px-4 py-3 last:border-b-0">
+          <Skeleton className="mt-0.5 size-5 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-3 w-2/3" />
+            <Skeleton className="h-2.5 w-1/2" />
+          </div>
+          <Skeleton className="h-3 w-16" />
         </li>
       ))}
     </ul>
