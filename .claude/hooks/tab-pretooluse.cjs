@@ -70,6 +70,7 @@ const PRETOOLUSE_RULES = [
   require("./rules/pretooluse/todo-tags.cjs"),
   require("./rules/pretooluse/changelog-version-heading.cjs"),
   require("./rules/pretooluse/english-comments.cjs"),
+  require("./rules/pretooluse/english-ui-strings.cjs"),
   require("./rules/pretooluse/barrel-purity.cjs"),
   require("./rules/pretooluse/logging-channel.cjs"),
   require("./rules/pretooluse/config-weakening.cjs"),

@@ -54,6 +54,10 @@ const BIDI_OVERRIDE = String.fromCharCode(0x202e);
 const GERMAN_COMMENT =
   "// Das ist ein Kommentar, der nicht in den Code gehoert und dort auch nicht bleiben soll";
 
+/** German user-facing text, for the UI-string gate. */
+const GERMAN_JSX = "<p>Bitte wähle ein Repository aus der Liste, dann geht es weiter</p>";
+const GERMAN_LITERAL = 'const t = "Der Ordner ist kein Repository und kann nicht geöffnet werden";';
+
 /** `[name, payload, shouldBlock]`. */
 const CASES = [
   ["secret in source", { tool_input: { content: `const k = "${FAKE_TOKEN}";`, file_path: `${CWD}/src/x.ts` }, tool_name: "Write" }, true],
@@ -117,6 +121,11 @@ const CASES = [
   ["tagged TODO", { tool_input: { content: "// TODO(bug): the parser drops CRLF; tracked", file_path: `${CWD}/src/c.ts` }, tool_name: "Write" }, false],
   ["German comment", { tool_input: { content: GERMAN_COMMENT, file_path: `${CWD}/src/c.ts` }, tool_name: "Write" }, true],
   ["English comment", { tool_input: { content: "// The parser drops CRLF because git normalises it on the way out.", file_path: `${CWD}/src/c.ts` }, tool_name: "Write" }, false],
+  ["German JSX text", { tool_input: { content: GERMAN_JSX, file_path: `${CWD}/src/ui/x.tsx` }, tool_name: "Write" }, true],
+  ["German string literal", { tool_input: { content: GERMAN_LITERAL, file_path: `${CWD}/src/ui/x.ts` }, tool_name: "Write" }, true],
+  ["English JSX text", { tool_input: { content: "<p>Open a repository to read its history.</p>", file_path: `${CWD}/src/ui/x.tsx` }, tool_name: "Write" }, false],
+  ["German string moved, not written", { tool_input: { file_path: `${CWD}/src/ui/x.ts`, new_string: `${GERMAN_LITERAL}\nconst b = 2;`, old_string: GERMAN_LITERAL }, tool_name: "Edit" }, false],
+  ["German string in a story", { tool_input: { content: GERMAN_JSX, file_path: `${CWD}/src/ui/x.stories.tsx` }, tool_name: "Write" }, false],
 ];
 
 /**
