@@ -32,6 +32,13 @@ bug.
 | [release-versioning](release-versioning/) | What a release is, and the five things that must agree |
 | [security](security/) | Secrets, the Tauri surface, failing closed |
 
+## How a session learns these exist
+
+The rules are not loaded into every session — on a turn that never touches code
+they would cost more context than they are worth. So the first edit of a session
+gets one line pointing here (`rules-awareness`). A pointer, deliberately not a
+summary: a summary would be a second copy of the rules, and it would drift.
+
 ## Changing a rule
 
 `.claude/rules/` is a protected surface: agent edits are refused unless the user

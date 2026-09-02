@@ -1,7 +1,8 @@
 # Branch, commit, push
 
 Enforced by: `branch-protection`, `branch-create-guard`, `bash-gates`,
-`commit-explicit-paths`, `commit-reminder` (Stop).
+`commit-explicit-paths`, `commit-scope`, `commit-reminder` (Stop). The rest of
+the Stop chain is described in [stop-chain.md](stop-chain.md).
 
 ## Nothing is committed on `main`
 

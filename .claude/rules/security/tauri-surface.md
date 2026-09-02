@@ -1,6 +1,7 @@
 # The Tauri surface
 
-Enforced by: `tauri-security`, `surface-protect` (the `configs` scope).
+Enforced by: `tauri-security`, `surface-protect` (the `configs` scope),
+`config-weakening`, `settings-weakening`.
 
 ## What is actually at stake
 
@@ -43,6 +44,27 @@ reason is not written down is a permission nobody can later argue with.
 | a remote `devUrl` | points the dev webview at an origin you do not control |
 
 Any of these changing is a `Security` entry in the CHANGELOG.
+
+## Settings that only grow
+
+The same shortest-path pattern applies to two files outside Tauri, and the
+answer is the same: the direction of the change is what is judged, not the
+file.
+
+- **`tsconfig.json`** — a type error appears, and the cheapest way past it is
+  to switch off the check that found it. Turning a check on is always free.
+  Turning one off (`strict`, and the flags under it) has to be argued for, and
+  the diff cannot make that argument: it shows one flag flipping, not the
+  hundred call sites that stop being verified.
+- **`.claude/settings.json`** — the hook wiring decides which gates run at all,
+  and `permissions.deny` is a list of decisions about what this agent may not
+  do. Adding a hook or a deny entry passes. Removing one is a decision being
+  reversed by whoever happens to be editing, and it leaves no trace anywhere
+  else: the rule files still exist, and nothing runs.
+
+Both files already sit behind the `configs` unlock window. These two rules are
+the tier that survives an open window — inside it, a weakening still has to be
+made out loud.
 
 ## Known open item
 
