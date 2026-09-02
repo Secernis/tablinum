@@ -26,6 +26,12 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `npm run changelog` for recording a change the moment it is made.
 - Agent guardrails: 27 write-time gates and a 7-stage Stop chain covering branch protection, secrets, the Tauri capability surface, debt markers, comment language and the CHANGELOG duty
 - A Claude Code statusline showing branch, dirty-file count, context usage, rate-limit pace and session duration
+- Choose the repository to read: pick a recent one, scan your usual code folders, or type a path
+- The overview shows the opened repository's real totals and its newest commits with their line counts
+
+### Changed
+- The app opens with the repository picker instead of the scaffold status page
+
 
 ## [0.1.0] - 2026-08-22
 
