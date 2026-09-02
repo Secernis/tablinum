@@ -4,14 +4,16 @@ import type { OpenedRepository } from "@/domain/history";
 import { logWarn } from "@/lib/log";
 
 import { useServices } from "../services-context";
-import type { WorkspaceStore } from "../workspace/workspace-store";
 import { describeRepositoryError, type RepositoryError } from "./gateway";
 
-/** What the picker needs to open one repository at a time. */
+/** What the start page needs to open one repository at a time. */
 export interface Opener {
   /** Resolves to null when opening failed; `error` then says why. */
   open(path: string): Promise<OpenedRepository | null>;
-  /** Ask for a folder through the picker, then open it. Null when cancelled or failed. */
+  /**
+   * Ask for a folder through the picker, open it, and remember it in the
+   * list. Null when cancelled or failed.
+   */
   openFromDialog(): Promise<OpenedRepository | null>;
   /** The path currently being opened, or null. */
   opening: string | null;
@@ -20,11 +22,11 @@ export interface Opener {
 }
 
 /**
- * Use case: open a repository and remember it as recent.
+ * Use case: open a repository.
  *
- * The recent list is written here rather than by the caller because "opened"
- * and "remembered" are one event — a caller that could forget the second half
- * would produce a recent list that lies.
+ * Opening from the dialog also adds the repository to the workspace, because
+ * "opened once" and "on the list" are one event from the user's side: what
+ * they pointed the app at is what the start page shows.
  */
 export function useOpenRepository(): Opener {
   const { repositories, workspace, folders } = useServices();
@@ -36,9 +38,7 @@ export function useOpenRepository(): Opener {
       setOpening(path);
       setError(null);
       try {
-        const opened = await repositories.open(path);
-        remember(workspace, opened);
-        return opened;
+        return await repositories.open(path);
       } catch (e) {
         logWarn("repository.open.failed", { path, error: e });
         setError(describeRepositoryError(e as RepositoryError));
@@ -47,22 +47,22 @@ export function useOpenRepository(): Opener {
         setOpening(null);
       }
     },
-    [repositories, workspace],
+    [repositories],
   );
 
   const openFromDialog = useCallback(async () => {
     const path = await folders.pickFolder("Open a git repository");
-    return path ? open(path) : null;
-  }, [folders, open]);
+    if (!path) return null;
+    const opened = await open(path);
+    if (opened) {
+      // The confirmed root, not the picked path: a subfolder of a repository
+      // opens fine, but the list should show the repository.
+      const root = opened.repository.path;
+      const known = workspace.readAddedRepositories();
+      if (!known.includes(root)) workspace.writeAddedRepositories([root, ...known]);
+    }
+    return opened;
+  }, [folders, open, workspace]);
 
   return { open, openFromDialog, opening, error, clearError: () => setError(null) };
-}
-
-/** How many repositories the recent list keeps. */
-const RECENT_LIMIT = 8;
-
-function remember(store: WorkspaceStore, opened: OpenedRepository) {
-  const { path, name } = opened.repository;
-  const rest = store.readRecent().filter((r) => r.path !== path);
-  store.writeRecent([{ path, name, openedAt: Date.now() }, ...rest].slice(0, RECENT_LIMIT));
 }

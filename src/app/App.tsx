@@ -1,10 +1,9 @@
-import { ArrowLeft, DashboardSquare1, Folder1 } from "@tailgrids/icons";
+import { ArrowLeft } from "@tailgrids/icons";
 import { useState } from "react";
 
 import { useDiscoverRepositories } from "@/application/repository/use-discover-repositories";
 import { useOpenRepository } from "@/application/repository/use-open-repository";
 import { ServicesProvider, type Services } from "@/application/services-context";
-import { useRecentRepositories } from "@/application/workspace/use-recent-repositories";
 import { Button } from "@/components/tailgrids/core/button";
 import type { OpenedRepository } from "@/domain/history";
 import { createLocalWorkspaceStore } from "@/infrastructure/storage/workspace-store";
@@ -13,7 +12,7 @@ import { createTauriRepositoryGateway } from "@/infrastructure/tauri/repository-
 import { RepoOverview } from "@/ui/repo-overview/RepoOverview";
 import { PickerActions } from "@/ui/repo-picker/PickerActions";
 import { RepoPicker } from "@/ui/repo-picker/RepoPicker";
-import { AppShell, type NavItem } from "@/ui/shell/AppShell";
+import { AppShell } from "@/ui/shell/AppShell";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -29,7 +28,7 @@ const services: Services = {
   folders: createTauriFolderPicker(),
 };
 
-/** The shell: sidebar, title bar, and whichever screen the user is on. */
+/** The shell, and whichever screen the user is on. */
 export default function App() {
   return (
     <ServicesProvider services={services}>
@@ -38,48 +37,33 @@ export default function App() {
   );
 }
 
-type View = "repositories" | "overview";
-
 function Workspace() {
   const [opened, setOpened] = useState<OpenedRepository | null>(null);
-  const [view, setView] = useState<View>("repositories");
-
-  const nav: NavItem[] = [
-    { id: "repositories", label: "Repositories", icon: <Folder1 />, active: view === "repositories" },
-    {
-      id: "overview",
-      label: "Overview",
-      icon: <DashboardSquare1 />,
-      active: view === "overview",
-      disabled: opened === null,
-    },
-  ];
-
   const discovery = useDiscoverRepositories();
   const opener = useOpenRepository();
-  const recents = useRecentRepositories();
 
   function settle(result: OpenedRepository | null) {
-    if (!result) return;
-    recents.refresh();
-    setOpened(result);
-    setView("overview");
+    if (result) setOpened(result);
   }
 
-  if (view === "overview" && opened) {
+  function backToList() {
+    setOpened(null);
+    // A repository opened through the dialog while away is on the list now.
+    void discovery.scan();
+  }
+
+  if (opened) {
     return (
       <AppShell
-        nav={nav}
-        onNavigate={(id) => setView(id as View)}
-        footer={<ThemeToggle />}
         title={opened.repository.name}
         subtitle={opened.repository.path}
         actions={
-          <Button variant="primary" appearance="outline" size="sm" onPress={() => setView("repositories")}>
+          <Button variant="primary" appearance="outline" size="sm" onPress={backToList}>
             <ArrowLeft />
-            Change repository
+            Repositories
           </Button>
         }
+        controls={<ThemeToggle />}
       >
         <RepoOverview opened={opened} />
       </AppShell>
@@ -88,9 +72,6 @@ function Workspace() {
 
   return (
     <AppShell
-      nav={nav}
-      onNavigate={(id) => setView(id as View)}
-      footer={<ThemeToggle />}
       title="Repositories"
       subtitle="Choose the history to read"
       actions={
@@ -100,12 +81,13 @@ function Workspace() {
           disabled={opener.opening !== null}
         />
       }
+      controls={<ThemeToggle />}
     >
       <RepoPicker
-        recent={recents.recent}
-        onForgetRecent={recents.forget}
         roots={discovery.roots}
         onRemoveRoot={discovery.removeRoot}
+        added={discovery.added}
+        onRemoveAdded={discovery.removeAdded}
         found={discovery.found}
         scanStatus={discovery.status}
         onScan={() => void discovery.scan()}

@@ -3,10 +3,9 @@ import { useState } from "react";
 
 import { Badge } from "@/components/tailgrids/core/badge";
 import { Button } from "@/components/tailgrids/core/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/tailgrids/core/card";
+import { Card, CardContent, CardHeader } from "@/components/tailgrids/core/card";
 import { Input } from "@/components/tailgrids/core/input";
 import { Skeleton } from "@/components/tailgrids/core/skeleton";
-import type { RecentRepository } from "@/application/workspace/workspace-store";
 import { matchesQuery, type LocatedRepository } from "@/domain/repository";
 import Logo from "@/lib/brand/Logo";
 import { Notice } from "@/ui/shared/Notice";
@@ -14,14 +13,15 @@ import { formatRelative } from "@/ui/shared/format-time";
 
 import { BranchBadge, RepoRow } from "./RepoRow";
 
-/** Everything the picker renders, handed in by the use cases. */
+/** Everything the start page renders, handed in by the use cases. */
 export interface RepoPickerProps {
-  recent: RecentRepository[];
-  onForgetRecent(path: string): void;
-
   /** The folders a scan covers, as the user chose them. */
   roots: string[];
   onRemoveRoot(root: string): void;
+  /** Repositories added one at a time; these rows carry a remove button. */
+  added: string[];
+  onRemoveAdded(path: string): void;
+  /** Everything remembered, described; newest commit first. */
   found: LocatedRepository[];
   scanStatus: "idle" | "scanning" | "done";
   onScan(): void;
@@ -34,84 +34,64 @@ export interface RepoPickerProps {
 }
 
 /**
- * The first screen: choose the repository to read.
+ * The start page: one list of the repositories the user pointed the app at.
  *
- * The actions — "Add folder…" and "Open folder…" — live in the page title bar
- * (see `PickerActions`), so this component is the content: what was open last
- * time, and what the chosen folders contain. Presentational only.
+ * The two ways of adding to it — "Add folder…" and "Open folder…" — sit in the
+ * title bar (see `PickerActions`). This is the list itself, with the folders
+ * it comes from as removable chips and a filter once it is long enough to
+ * need one. Presentational only.
  */
 export function RepoPicker(props: RepoPickerProps) {
-  const { recent, onForgetRecent, roots, found, scanStatus, opening, onOpen, error } = props;
+  const { roots, added, found, scanStatus, opening, onOpen, error } = props;
   const [query, setQuery] = useState("");
   const busy = opening !== null;
   const visible = found.filter((r) => matchesQuery(r, query));
-  const firstRun = roots.length === 0 && recent.length === 0;
+  const nothingRemembered = roots.length === 0 && added.length === 0;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {error && <Notice tone="error">{error}</Notice>}
 
-      {firstRun && <FirstRun />}
-
-      {recent.length > 0 && (
+      {nothingRemembered ? (
+        <FirstRun />
+      ) : (
         <Card className="border border-line">
-          <CardHeader>
-            <CardTitle className="text-base">Recent</CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <ul>
-              {recent.map((r) => (
-                <RepoRow
-                  key={r.path}
-                  name={r.name}
-                  path={r.path}
-                  aside={opening === r.path ? "Opening…" : formatRelative(r.openedAt / 1000)}
-                  disabled={busy}
-                  onOpen={() => onOpen(r.path)}
-                  onRemove={() => onForgetRecent(r.path)}
-                  removeLabel={`Forget ${r.name}`}
-                />
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {roots.length > 0 && (
-        <Card className="border border-line">
-          <CardHeader>
-            <CardTitle className="text-base">In your folders</CardTitle>
-            <CardAction>
-              <Button
-                variant="ghost"
-                size="sm"
-                onPress={props.onScan}
-                disabled={busy || scanStatus === "scanning"}
-                aria-label="Scan the folders again"
-              >
-                <Reload className={scanStatus === "scanning" ? "animate-spin" : undefined} />
-                {scanStatus === "scanning" ? "Scanning…" : "Rescan"}
-              </Button>
-            </CardAction>
-            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Folders being scanned">
-              {roots.map((root) => (
-                <li key={root}>
-                  <Badge color="primary" size="md" className="pl-3 pr-1" title={root}>
-                    {lastSegment(root)}
-                    <button
-                      type="button"
-                      aria-label={`Stop scanning ${root}`}
-                      onClick={() => props.onRemoveRoot(root)}
-                      className="rounded-full p-0.5 hover:bg-accent/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    >
-                      <Xmark className="size-3.5" />
-                    </button>
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-            {found.length > 0 && (
-              <div className="relative mt-4">
+          <CardHeader className="space-y-3">
+            {roots.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-widest text-muted">Folders</span>
+                <ul className="flex flex-wrap gap-2" aria-label="Folders being scanned">
+                  {roots.map((root) => (
+                    <li key={root}>
+                      <Badge color="primary" size="md" className="pl-3 pr-1" title={root}>
+                        {lastSegment(root)}
+                        <button
+                          type="button"
+                          aria-label={`Stop scanning ${root}`}
+                          onClick={() => props.onRemoveRoot(root)}
+                          className="rounded-full p-0.5 hover:bg-accent/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        >
+                          <Xmark className="size-3.5" />
+                        </button>
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onPress={props.onScan}
+                  disabled={busy || scanStatus === "scanning"}
+                  aria-label="Scan the folders again"
+                  className="ml-auto"
+                >
+                  <Reload className={scanStatus === "scanning" ? "animate-spin" : undefined} />
+                  {scanStatus === "scanning" ? "Scanning…" : "Rescan"}
+                </Button>
+              </div>
+            )}
+            {found.length > 5 && (
+              <div className="relative">
                 <Input
                   type="search"
                   value={query}
@@ -125,12 +105,14 @@ export function RepoPicker(props: RepoPickerProps) {
             )}
           </CardHeader>
           <CardContent className="px-0 pb-0 pt-3">
-            <ScanResults
+            <RepositoryList
               status={scanStatus}
               candidates={visible}
               totalFound={found.length}
+              added={added}
               opening={opening}
               onOpen={onOpen}
+              onRemoveAdded={props.onRemoveAdded}
             />
           </CardContent>
         </Card>
@@ -152,8 +134,9 @@ function FirstRun() {
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-xl text-ink">Read a Git history</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Add the folders you keep your projects in and Tablinum lists every repository inside them, or open a
-            single repository straight from its folder. Nothing is ever written to a repository.
+            Add the folders you keep your projects in and every repository inside them appears here, or open a
+            single repository from its folder. What you add stays on this list. Nothing is ever written to a
+            repository.
           </p>
         </div>
       </CardContent>
@@ -161,18 +144,22 @@ function FirstRun() {
   );
 }
 
-function ScanResults({
+function RepositoryList({
   status,
   candidates,
   totalFound,
+  added,
   opening,
   onOpen,
+  onRemoveAdded,
 }: {
   status: "idle" | "scanning" | "done";
   candidates: LocatedRepository[];
   totalFound: number;
+  added: string[];
   opening: string | null;
   onOpen(path: string): void;
+  onRemoveAdded(path: string): void;
 }) {
   if (totalFound === 0 && status === "scanning") return <SkeletonRows />;
   if (totalFound === 0) {
@@ -193,6 +180,8 @@ function ScanResults({
           aside={opening === r.path ? "Opening…" : r.headAt !== null ? formatRelative(r.headAt) : undefined}
           disabled={opening !== null}
           onOpen={() => onOpen(r.path)}
+          onRemove={added.includes(r.path) ? () => onRemoveAdded(r.path) : undefined}
+          removeLabel={`Remove ${r.name} from the list`}
         />
       ))}
       {status === "scanning" && <SkeletonRows count={2} />}

@@ -32,8 +32,8 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - The app opens with the repository picker instead of the scaffold status page
 - The window opens at 1200×800 and cannot shrink below 900×600, so the repository picker has room
-- The app is framed in a sidebar shell: navigation on the left, a title bar per page with its actions, the content as cards on the canvas
-- The repository picker shows a first-run explanation, skeleton rows while a scan runs, and its folder actions in the title bar
+- Every page has a title bar with its actions on the right; the content sits as cards on the canvas
+- The start page is one list of the repositories you added, by folder or one at a time, newest commit first; skeleton rows show while a scan runs
 
 ### Fixed
 - Dates, relative times and numbers render in English regardless of the system language

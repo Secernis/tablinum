@@ -25,8 +25,8 @@ export function ThemeToggle() {
   }
 
   return (
-    <Button variant="ghost" size="sm" onPress={toggle} className="w-full justify-start text-ink">
-      {dark ? "Switch to light" : "Switch to dark"}
+    <Button variant="ghost" size="sm" onPress={toggle} aria-label="Switch theme">
+      {dark ? "Light" : "Dark"}
     </Button>
   );
 }

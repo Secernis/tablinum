@@ -1,21 +1,17 @@
-import type { RecentRepository, WorkspaceStore } from "@/application/workspace/workspace-store";
+import type { WorkspaceStore } from "@/application/workspace/workspace-store";
 import { logWarn } from "@/lib/log";
 
-const RECENT_KEY = "tablinum.recent-repositories";
 const SCAN_ROOTS_KEY = "tablinum.scan-roots";
+const ADDED_KEY = "tablinum.added-repositories";
 
-function isRecent(value: unknown): value is RecentRepository {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return typeof v.path === "string" && typeof v.name === "string" && typeof v.openedAt === "number";
-}
+const isPath = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
 /**
  * Read a JSON array from local storage, keeping only the items that pass `isItem`.
  *
  * Every read validates the shape: the value was written by an earlier version
  * of this app, and a field that moved must degrade to "nothing remembered"
- * rather than to a picker that throws on its first render.
+ * rather than to a start page that throws on its first render.
  */
 function readList<T>(key: string, isItem: (value: unknown) => value is T): T[] {
   try {
@@ -42,9 +38,9 @@ function writeList(key: string, list: unknown[]): void {
 /** The workspace memory in local storage. */
 export function createLocalWorkspaceStore(): WorkspaceStore {
   return {
-    readRecent: () => readList(RECENT_KEY, isRecent),
-    writeRecent: (entries) => writeList(RECENT_KEY, entries),
-    readScanRoots: () => readList(SCAN_ROOTS_KEY, (v): v is string => typeof v === "string"),
+    readScanRoots: () => readList(SCAN_ROOTS_KEY, isPath),
     writeScanRoots: (roots) => writeList(SCAN_ROOTS_KEY, roots),
+    readAddedRepositories: () => readList(ADDED_KEY, isPath),
+    writeAddedRepositories: (paths) => writeList(ADDED_KEY, paths),
   };
 }
