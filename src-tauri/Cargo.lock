@@ -3315,6 +3315,7 @@ dependencies = [
 name = "tablinum"
 version = "0.1.0"
 dependencies = [
+ "log",
  "serde",
  "serde_json",
  "tauri",
