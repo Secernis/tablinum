@@ -146,9 +146,40 @@ Unchanged from TailGrids: 4 px base (Tailwind scale), 8 px border radius as the
 default (4/8/12/16/24/full), 24 px card padding (16 px compact), 8–12 px between
 elements.
 
-Shadows by elevation: `sm` for cards, `md` for dropdowns, `lg` for popovers,
-`2xl` for modals. Shallow transitions are solved by changing surface
-(`surface` → `raised`), not by adding shadow.
+## Material
+
+The surfaces are glass — translucent, with their own light. Defined once in
+`src/material.css` as `.glass`, `.glass-bar` and `.elev-1/2/3`, on top of the
+tokens, for both themes through `light-dark()`.
+
+Four ingredients, and the last two are the ones usually forgotten:
+
+1. A translucent fill — a gradient, never a flat colour.
+2. `backdrop-filter`: blur plus saturate.
+3. A **lighter edge at the top than at the bottom**. That is what makes an
+   edge read as a lit rim instead of an outline.
+4. A light source **inside** the surface (`.glass::before`), so every card
+   looks the same wherever it sits. The alternative — colour fields behind the
+   app — makes a card's look depend on its position, and two identical rows
+   render differently. The ground therefore stays quiet: a flat brightening,
+   a vignette, grain.
+
+Elevation is a system of three steps, each **layered and tinted** with the
+brand's ink rather than one step of black: `elev-1` for tiles, `elev-2` for
+cards, lists and tables, `elev-3` for dialogs. A single-step `#000` shadow is
+the surest sign of a shadow nobody thought about.
+
+**Nothing opaque on glass.** Hover, dividers, chips, outline buttons, inputs
+and skeletons use a mix of the text colour (`bg-ink/6`, `divide-ink/8`),
+which brightens on the dark theme and darkens on the light one. An opaque
+`bg-raised` on a glass card reads as a patch; an opaque `border-line` reads as
+a foreign edge. `src/theme-bridge.css` binds the TailGrids component tokens
+the same way.
+
+Kept deliberately minimal: blur 20 px, fills between 3 and 9 percent, no
+strong colour fields. It is meant to be felt on the surfaces, not noticed as
+an effect. The sibling project this was learned in is Skjol; its
+`docs/CHECKLISTE-DESIGN.md` holds the longer reasoning.
 
 ## Components
 
@@ -173,7 +204,11 @@ stacking with them.
 - Exactly **one** filled primary button per view; everything else is secondary
   or ghost.
 - Set number columns in JetBrains Mono so they line up.
-- Layer surfaces through `canvas` → `surface` → `raised`.
+- Layer surfaces as the ground (`canvas`) and glass cards on it; on glass,
+  states are `ink/N` mixes, never an opaque surface token.
+- Colour data by entity, never by rank: the language hues live in
+  `src/ui/shared/language-colors.ts`, validated for colour vision on both
+  surfaces, with green and red left to the diff.
 - Use semantic colours (success/warning/danger/info) for their meaning only,
   never decoratively.
 - Embed the mark through the Logo component — it brings clear space and the
@@ -199,13 +234,19 @@ stacking with them.
 
 ## Layout
 
-Sidebar navigation 232 px wide with a 1 px border on the right; content area
-layering cards on the page background. 24–32 px between main sections — tighter
-than TailGrids' 80–96 px, because this is a desktop app and not a marketing
-page.
+Today the shell is a title bar: the mark, the page's name, its actions on the
+right, the theme toggle after them. Content sits as glass cards on the ground,
+24–32 px between main sections — tighter than TailGrids' 80–96 px, because
+this is a desktop app and not a marketing page.
 
-Breakpoints barely matter: the main window starts at 800 × 600 px, defined in
-`src-tauri/tauri.conf.json` — that file is the truth, not this paragraph.
+A sidebar (232 px, 1 px border on the right) is planned for when the analyses
+arrive and there is something to navigate between. It was built once and
+removed again, because two screens with one way between them do not need a
+frame — it comes back as a decision then, not as a placeholder now.
+
+Breakpoints barely matter: the main window starts at 1200 × 800 px with a
+900 × 600 minimum, defined in `src-tauri/tauri.conf.json` — that file is the
+truth, not this paragraph.
 
 ## Where things live
 
