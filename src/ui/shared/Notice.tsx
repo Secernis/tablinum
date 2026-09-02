@@ -20,7 +20,7 @@ export function Notice({ tone, children, className }: NoticeProps) {
       role={tone === "error" ? "alert" : undefined}
       className={cn(
         "rounded-lg border px-4 py-3 text-sm",
-        tone === "error" ? "border-danger bg-surface text-danger" : "border-line bg-surface text-muted",
+        tone === "error" ? "glass elev-1 border-danger/60 text-danger" : "glass elev-1 text-muted",
         className,
       )}
     >

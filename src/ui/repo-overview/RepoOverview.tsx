@@ -53,7 +53,7 @@ export function RepoOverview({ opened }: RepoOverviewProps) {
     <div className="mx-auto max-w-6xl space-y-6" style={DIFF_VARS}>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Totals">
         {stats.map((s) => (
-          <Card key={s.label} className="min-w-0 border border-line md:min-w-0">
+          <Card key={s.label} className="glass elev-1 min-w-0 rounded-2xl md:min-w-0">
             <CardContent className="p-5">
               {/* tabular: JetBrains Mono with tabular figures — columns must not
                   shift between two renders. */}
@@ -72,10 +72,10 @@ export function RepoOverview({ opened }: RepoOverviewProps) {
         {history.recent.length === 0 ? (
           <Notice tone="muted">This repository has no commits yet.</Notice>
         ) : (
-          <Card className="border border-line md:min-w-0">
+          <Card className="glass elev-2 overflow-hidden rounded-2xl md:min-w-0">
             <TableRoot className="border-0">
               <TableHeader>
-                <TableRow className="border-line">
+                <TableRow className="border-ink/10">
                   <TableHead className="text-muted">Hash</TableHead>
                   <TableHead className="text-muted">Message</TableHead>
                   <TableHead className="text-muted">Author</TableHead>
@@ -86,7 +86,7 @@ export function RepoOverview({ opened }: RepoOverviewProps) {
               </TableHeader>
               <TableBody>
                 {history.recent.map((c) => (
-                  <TableRow key={c.shortHash} className="border-line">
+                  <TableRow key={c.shortHash} className="border-ink/10">
                     <TableCell className="tabular text-sm text-muted">{c.shortHash}</TableCell>
                     <TableCell className="max-w-md truncate text-sm text-ink" title={c.subject}>
                       {c.subject}

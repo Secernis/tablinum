@@ -22,6 +22,9 @@
  *    tokens, so the components follow the brand and the theme switch. After
  *    brand.css, because it reads what brand.css defines. */
 @import "./theme-bridge.css";
+/* 5. material.css — glass, elevation and the ground: the surfaces' material,
+ *    on top of the tokens. */
+@import "./material.css";
 
 /* The theme follows the system setting until someone picks one explicitly.
  * theme.css defines the tokens under [data-theme="light"|"dark"] — without this
@@ -34,6 +37,15 @@ html:not([data-theme]) {
   /* Fall back to light; main.tsx sets data-theme at startup from
      prefers-color-scheme or the user's choice. */
   color-scheme: light;
+}
+
+/* The chosen theme also decides `color-scheme`, so `light-dark()` values —
+   the language colours, for one — follow the toggle rather than the OS. */
+html[data-theme="light"] {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {

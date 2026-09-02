@@ -10,6 +10,11 @@
  * `@theme inline` for the same reason as in brand.css: the value stays a
  * REFERENCE, so the switch propagates. Loaded after brand.css because it reads
  * the --t-* tokens; tokens not listed here keep TailGrids' values.
+ *
+ * Fills that sit ON a surface (outline buttons, badges, inputs, skeletons)
+ * are `color-mix` of the text colour rather than an opaque surface token: the
+ * cards are glass (material.css), and an opaque patch on glass reads as a
+ * patch. The mix brightens on the dark theme and darkens on the light one.
  */
 @theme inline {
   /* Surfaces: canvas below, surface for cards and bars, raised for hover. */
@@ -20,7 +25,7 @@
   --color-background-soft-200: var(--t-accentSoft);
   --color-background-soft-300: var(--t-bg);
   --color-background-soft-400: var(--t-surfaceRaised);
-  --color-card-background-50: var(--t-surface);
+  --color-card-background-50: transparent;
   --color-card-background-100: var(--t-surfaceRaised);
   --color-card-background-300: var(--t-surfaceRaised);
 
@@ -32,24 +37,25 @@
   --color-text-300: var(--t-text);
   --color-white-100: var(--t-accentText);
 
-  /* Borders. */
-  --border-color-base-50: var(--t-border);
-  --border-color-base-100: var(--t-border);
-  --border-color-base-200: var(--t-border);
-  --border-color-base-300: var(--t-border);
+  /* Borders: a mix of the text colour, never the opaque border token — on
+     glass an opaque line reads as a foreign edge. */
+  --border-color-base-50: color-mix(in oklab, var(--t-text) 10%, transparent);
+  --border-color-base-100: color-mix(in oklab, var(--t-text) 10%, transparent);
+  --border-color-base-200: color-mix(in oklab, var(--t-text) 10%, transparent);
+  --border-color-base-300: color-mix(in oklab, var(--t-text) 10%, transparent);
 
   /* Button: primary carries the accent, outline sits on a surface, ghost is text. */
   --color-button-primary-background: var(--t-accent);
   --color-button-primary-hover-background: color-mix(in oklab, var(--t-accent) 88%, var(--t-text));
   --color-button-primary-text: var(--t-accentText);
   --color-button-primary-focus-ring: var(--t-focus);
-  --color-button-outline-background: var(--t-surface);
-  --color-button-outline-hover-background: var(--t-surfaceRaised);
-  --color-button-outline-border: var(--t-border);
+  --color-button-outline-background: color-mix(in oklab, var(--t-text) 4%, transparent);
+  --color-button-outline-hover-background: color-mix(in oklab, var(--t-text) 9%, transparent);
+  --color-button-outline-border: color-mix(in oklab, var(--t-text) 14%, transparent);
   --color-button-outline-focus-ring: var(--t-focus);
   --color-button-outline-text: var(--t-text);
   --color-button-outline-hover-text: var(--t-text);
-  --color-button-outline-disabled-background: var(--t-surface);
+  --color-button-outline-disabled-background: transparent;
   --color-button-outline-disabled-text: var(--t-textMuted);
   --color-button-outline-disabled-border: var(--t-border);
   --color-button-disabled-background: var(--t-border);
@@ -57,13 +63,13 @@
   --color-button-disabled-text: var(--t-textMuted);
   --color-button-ghost-text: var(--t-textMuted);
   --color-button-ghost-hover-text: var(--t-text);
-  --color-button-ghost-hover-background: var(--t-surfaceRaised);
+  --color-button-ghost-hover-background: color-mix(in oklab, var(--t-text) 7%, transparent);
 
   /* Badge: primary is the accent pair, neutral is muted on raised. */
   --color-badge-primary-background: var(--t-accentSoft);
   --color-badge-primary-text: var(--t-accent);
   --color-badge-primary-icon-color: var(--t-accent);
-  --color-badge-neutral-background: var(--t-surfaceRaised);
+  --color-badge-neutral-background: color-mix(in oklab, var(--t-text) 8%, transparent);
   --color-badge-neutral-text: var(--t-textMuted);
   --color-badge-neutral-icon-color: var(--t-textMuted);
 
@@ -83,7 +89,7 @@
   --color-sidebar-footer-button-text: var(--t-text);
 
   /* Input. */
-  --color-input-background: var(--t-surface);
+  --color-input-background: color-mix(in oklab, var(--t-text) 4%, transparent);
   --color-input-label-text: var(--t-textMuted);
   --color-input-placeholder-text: var(--t-textMuted);
   --color-input-primary-focus-border: var(--t-accent);
@@ -91,7 +97,7 @@
   --color-input-error: var(--t-danger);
 
   /* Skeleton: the border tone, pulsing. */
-  --color-skeleton-gradient-50: var(--t-border);
-  --color-skeleton-gradient-100: var(--t-surfaceRaised);
-  --color-skeleton-gradient-200: var(--t-border);
+  --color-skeleton-gradient-50: color-mix(in oklab, var(--t-text) 12%, transparent);
+  --color-skeleton-gradient-100: color-mix(in oklab, var(--t-text) 5%, transparent);
+  --color-skeleton-gradient-200: color-mix(in oklab, var(--t-text) 12%, transparent);
 }

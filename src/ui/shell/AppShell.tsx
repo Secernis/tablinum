@@ -23,8 +23,10 @@ export interface AppShellProps {
  */
 export function AppShell({ title, subtitle, actions, controls, children }: AppShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-ink">
-      <header className="flex items-center gap-4 border-b border-line bg-surface px-6 py-4">
+    <div className="relative flex min-h-screen flex-col bg-canvas text-ink">
+      {/* The quiet ground the glass stands on; fixed, so it never scrolls. */}
+      <div className="app-ground" aria-hidden />
+      <header className="glass-bar sticky top-0 z-10 flex items-center gap-4 px-6 py-4">
         <Logo variant="mark" size={36} />
         <div className="min-w-0 flex-1">
           {/* --font-display: Lora, the chosen wordmark typeface */}
@@ -32,9 +34,9 @@ export function AppShell({ title, subtitle, actions, controls, children }: AppSh
           {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
         </div>
         {actions && <div className="flex shrink-0 gap-3">{actions}</div>}
-        {controls && <div className="ml-2 flex shrink-0 border-l border-line pl-4">{controls}</div>}
+        {controls && <div className="ml-2 flex shrink-0 border-l border-ink/10 pl-4">{controls}</div>}
       </header>
-      <main className="flex-1 overflow-auto p-6">{children}</main>
+      <main className="relative z-[1] flex-1 overflow-auto p-6">{children}</main>
     </div>
   );
 }

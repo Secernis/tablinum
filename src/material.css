@@ -1,0 +1,143 @@
+/* Material — glass, depth, and the ground it stands on.
+ *
+ * The surfaces are translucent and carry their own light. Four ingredients,
+ * and the last two are the ones usually forgotten:
+ *   1. a translucent fill (a gradient, never a flat colour)
+ *   2. backdrop-filter: blur + saturate
+ *   3. a LIGHTER edge at the top than at the bottom — that is what makes an
+ *      edge read as a lit rim instead of an outline
+ *   4. a light source INSIDE the surface (the ::before layer of .glass)
+ *
+ * Ingredient 4 is the expensive lesson, learned in a sibling project: when
+ * the light came from colour fields behind the app, a card's look depended
+ * on WHERE it sat, and two identical rows rendered differently. With the
+ * light in the surface, every card is the same anywhere, and the ground can
+ * stay quiet.
+ *
+ * Deliberately minimal: the blur is soft, the fills are faint, the ground is a
+ * flat brightening plus grain. It is meant to be felt on the surfaces, not
+ * noticed as an effect.
+ *
+ * Everything is `light-dark()`: index.css binds `color-scheme` to the theme
+ * toggle, so these follow it. The tint hues come from the brand — the warm
+ * ink (#1c1410) for depth and the signal colour (#e6cfae) for light.
+ *
+ * On glass, nothing opaque: hover, dividers and chips use `ink/N` mixes
+ * (bg-ink/6, divide-ink/8), which brighten on the dark surface and darken on
+ * the light one. An opaque `bg-raised` on a glass card reads as a patch.
+ */
+
+/* ── The ground ─────────────────────────────────────────────────────────── */
+
+/* Fixed behind everything, so the light does not scroll with the content
+   and the cards never drift across a colour field. */
+.app-ground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 12% -10%, light-dark(oklch(0.985 0.012 80), oklch(0.29 0.028 60)), transparent 58%),
+    linear-gradient(165deg, light-dark(oklch(0.975 0.012 80), oklch(0.205 0.022 55)), light-dark(oklch(0.955 0.016 75), oklch(0.165 0.018 50)));
+}
+
+/* Vignette: the only ground effect that adds depth without depending on
+   position — symmetric to the window, so it never "hits" anything. */
+.app-ground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    115% 100% at 50% 42%,
+    transparent 42%,
+    light-dark(oklch(0.85 0.02 70 / 0.35), oklch(0.11 0.02 55 / 0.55)) 100%
+  );
+}
+
+/* Grain. Without it a large gradient looks sterile and bands on 8-bit
+   displays; the noise breaks the edges of the colour steps. */
+.app-ground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* `light-dark()` is a colour function, so the two strengths are set by theme below. */
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.42'/></svg>");
+}
+
+html[data-theme="dark"] .app-ground::after {
+  opacity: 0.34;
+}
+
+/* ── Glass ──────────────────────────────────────────────────────────────── */
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(
+    150deg,
+    light-dark(oklch(1 0 0 / 0.58), oklch(1 0 0 / 0.085)),
+    light-dark(oklch(1 0 0 / 0.28), oklch(1 0 0 / 0.025))
+  );
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid light-dark(oklch(0.2 0.02 60 / 0.09), oklch(1 0 0 / 0.09));
+  border-top-color: light-dark(oklch(1 0 0 / 0.9), oklch(1 0 0 / 0.2));
+}
+
+/* The surface's own light: a warm glow from the top left, a faint second
+   source at the bottom right. Inside the card, under its content. */
+.glass::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(125% 105% at 0% 0%, light-dark(oklch(0.93 0.05 80 / 0.5), oklch(0.68 0.08 75 / 0.16)), transparent 58%),
+    radial-gradient(90% 80% at 100% 100%, light-dark(oklch(0.9 0.04 40 / 0.22), oklch(0.5 0.08 40 / 0.12)), transparent 62%);
+}
+
+/* A bar — the title bar — is glass without the second light source, so it
+   does not compete with the cards below it. */
+.glass-bar {
+  background: light-dark(oklch(1 0 0 / 0.5), oklch(1 0 0 / 0.045));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid light-dark(oklch(0.2 0.02 60 / 0.09), oklch(1 0 0 / 0.08));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--t-surface);
+  }
+  .glass-bar {
+    background: var(--t-surface);
+  }
+}
+
+/* ── Elevation ──────────────────────────────────────────────────────────── */
+
+/* Layered and TINTED rather than one step of black: a single-step #000 is the
+   surest sign of a shadow nobody thought about. The tint is the brand's ink. */
+.elev-1 {
+  box-shadow:
+    0 1px 2px light-dark(oklch(0.18 0.02 60 / 0.08), oklch(0.1 0.02 55 / 0.45)),
+    0 2px 6px light-dark(oklch(0.18 0.02 60 / 0.06), oklch(0.1 0.02 55 / 0.22));
+}
+
+.elev-2 {
+  box-shadow:
+    0 2px 4px light-dark(oklch(0.18 0.02 60 / 0.08), oklch(0.1 0.02 55 / 0.4)),
+    0 10px 28px light-dark(oklch(0.18 0.02 60 / 0.09), oklch(0.1 0.02 55 / 0.34)),
+    inset 0 1px 0 light-dark(oklch(1 0 0 / 0.7), oklch(1 0 0 / 0.1));
+}
+
+.elev-3 {
+  box-shadow:
+    0 4px 10px light-dark(oklch(0.18 0.02 60 / 0.1), oklch(0.1 0.02 55 / 0.45)),
+    0 22px 54px light-dark(oklch(0.18 0.02 60 / 0.14), oklch(0.1 0.02 55 / 0.44)),
+    inset 0 1px 0 light-dark(oklch(1 0 0 / 0.8), oklch(1 0 0 / 0.13));
+}
