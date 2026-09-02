@@ -30,6 +30,12 @@ stories, tests, `src/lib/brand/` and the vendored TailGrids components. When
 translations arrive, the strings move into a catalogue and the gate keeps
 judging the English default.
 
+The gate cannot see the other way German reaches the screen: an `Intl`
+formatter left on the runtime default prints "vor 20 Minuten" next to an
+English label, and there is no string for a scanner to find. Every formatter
+therefore takes `UI_LOCALE` from `src/ui/shared/locale.ts`, never the default —
+that file is the one place the interface locale is decided.
+
 **Chat is German** because that is what the user reads. The drift is real and
 gradual: a turn spent reading English source, English error messages and English
 documentation ends in an English reply without anyone deciding to switch.
