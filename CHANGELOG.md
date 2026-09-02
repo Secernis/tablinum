@@ -24,7 +24,7 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `npm run commit`, `npm run push`, `npm run release`, plus `npm run verify` as
   the single gate all of them share.
 - `npm run changelog` for recording a change the moment it is made.
-- Agent guardrails: 25 write-time gates and a 7-stage Stop chain covering branch protection, secrets, the Tauri capability surface, debt markers, comment language and the CHANGELOG duty
+- Agent guardrails: 27 write-time gates and a 7-stage Stop chain covering branch protection, secrets, the Tauri capability surface, debt markers, comment language and the CHANGELOG duty
 
 ## [0.1.0] - 2026-08-22
 
