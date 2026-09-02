@@ -30,6 +30,7 @@ import { ExitCode, ROOT, fail, info, ok, parseArgs, run, step, style, warn } fro
 const require = createRequire(import.meta.url);
 const todoCore = require("./lib/todo-core.cjs");
 const commentLang = require("./lib/comment-lang.cjs");
+const uiLang = require("./lib/ui-lang.cjs");
 const changelogCore = require("./lib/changelog-core.cjs");
 const secretWrite = require("../.claude/hooks/rules/pretooluse/secret-write.cjs");
 
@@ -206,6 +207,35 @@ function sensorComments(files) {
 }
 
 /**
+ * Sensor: user-facing strings in the frontend are English.
+ *
+ * The interface language is a product decision (English), and this is the
+ * whole-file backstop behind the write-time gate `english-ui-strings`.
+ *
+ * @param {string[]} files - Repo-relative paths to check.
+ * @returns {Array<object>} Findings.
+ */
+function sensorUiStrings(files) {
+  const out = [];
+  for (const rel of files) {
+    if (!uiLang.isUiFile(rel)) continue;
+    let text;
+    try {
+      text = readFileSync(join(ROOT, rel), "utf8");
+    } catch {
+      continue;
+    }
+    const hit = uiLang.findGermanString(text, rel);
+    if (hit) {
+      out.push(
+        finding("english-ui-strings", rel, `German user-facing string (${hit.words.join(", ")}): ${hit.text}`),
+      );
+    }
+  }
+  return out;
+}
+
+/**
  * Sensor: the CHANGELOG matches its schema.
  *
  * @returns {Array<object>} Findings.
@@ -276,23 +306,27 @@ function sensorVersionSync() {
  * @returns {Array<object>} Findings.
  */
 function sensorGates() {
-  const suite = join(ROOT, ".claude", "hooks", "gate-smoke.test.cjs");
-  if (!existsSync(suite)) {
-    return [finding("gates", ".claude/hooks", "the gate suite is missing — nothing verifies the gates")];
-  }
-  const res = run("node", [suite]);
-  if (res.ok) return [];
-  const failed = `${res.stdout}\n${res.stderr}`
-    .split("\n")
-    .filter((l) => l.startsWith("FAIL") || l.trim().startsWith("expected"))
-    .slice(0, 20);
-  return [
-    finding(
-      "gates",
-      ".claude/hooks",
-      `the gate suite failed — a rule stopped doing what it claims:\n${failed.join("\n")}`,
-    ),
+  // The detector suites sit next to the gate suite: a detector that stopped
+  // detecting makes its gate and its sensor green for the wrong reason.
+  const suites = [
+    [join(ROOT, ".claude", "hooks", "gate-smoke.test.cjs"), ".claude/hooks", "the gate suite"],
+    [join(ROOT, "scripts", "lib", "ui-lang.test.cjs"), "scripts/lib/ui-lang.cjs", "the UI-string detector suite"],
   ];
+  const out = [];
+  for (const [suite, where, label] of suites) {
+    if (!existsSync(suite)) {
+      out.push(finding("gates", where, `${label} is missing — nothing verifies it`));
+      continue;
+    }
+    const res = run("node", [suite]);
+    if (res.ok) continue;
+    const failed = `${res.stdout}\n${res.stderr}`
+      .split("\n")
+      .filter((l) => l.startsWith("FAIL") || l.trim().startsWith("expected") || l.startsWith("  "))
+      .slice(0, 20);
+    out.push(finding("gates", where, `${label} failed — a rule stopped doing what it claims:\n${failed.join("\n")}`));
+  }
+  return out;
 }
 
 /**
@@ -362,6 +396,7 @@ function main() {
   runSensor("secrets", () => sensorSecrets(files));
   runSensor("todo-tags", () => sensorTodos(files));
   runSensor("english-comments", () => sensorComments(files));
+  runSensor("english-ui-strings", () => sensorUiStrings(files));
   runSensor("changelog-schema", sensorChangelog);
   runSensor("version-sync", sensorVersionSync);
   // A TS or TSX file in the set means the program's types may have moved.
