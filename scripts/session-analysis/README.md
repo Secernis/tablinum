@@ -29,6 +29,12 @@ minutes, seconds per request, average context per request, output tokens,
 edits, Bash calls. On Windows the same project directory can be reachable under
 several spellings; pass each path only once or sessions are counted twice.
 
+`session_timeouts.py <dir> [<dir>...]` — Bash calls across a project directory:
+per command category the call count, harness timeouts, errored results, average
+and total duration; timeouts per week; every timeout listed with its limit and
+command. The categories are loose substring matches on the command line, meant
+to be sharpened per question.
+
 ## Known blind spots
 
 - Hook runtime is not recorded separately; PreToolUse hooks are inside the
