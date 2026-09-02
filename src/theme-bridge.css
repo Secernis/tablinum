@@ -1,0 +1,97 @@
+/* TailGrids semantic tokens, bound to the brand tokens.
+ *
+ * tailgrids.css ships ONE palette (the dark one, per tailgrids.config.json)
+ * as fixed hex values, so a TailGrids component would stay dark when the app
+ * switches to light and would carry TailGrids indigo instead of Tabula. This
+ * file rebinds the tokens the components read to the `--t-*` tokens that
+ * already follow `data-theme`, so Button, Badge, Card, Input, Sidebar and the
+ * Pro blocks inherit the brand and the theme switch without a class changed.
+ *
+ * `@theme inline` for the same reason as in brand.css: the value stays a
+ * REFERENCE, so the switch propagates. Loaded after brand.css because it reads
+ * the --t-* tokens; tokens not listed here keep TailGrids' values.
+ */
+@theme inline {
+  /* Surfaces: canvas below, surface for cards and bars, raised for hover. */
+  --color-background-50: var(--t-surface);
+  --color-background-100: var(--t-bg);
+  --color-background-soft-50: var(--t-surfaceRaised);
+  --color-background-soft-100: var(--t-surfaceRaised);
+  --color-background-soft-200: var(--t-accentSoft);
+  --color-background-soft-300: var(--t-bg);
+  --color-background-soft-400: var(--t-surfaceRaised);
+  --color-card-background-50: var(--t-surface);
+  --color-card-background-100: var(--t-surfaceRaised);
+  --color-card-background-300: var(--t-surfaceRaised);
+
+  /* Text. */
+  --color-title-50: var(--t-text);
+  --color-text-50: var(--t-text);
+  --color-text-100: var(--t-textMuted);
+  --color-text-200: var(--t-textMuted);
+  --color-text-300: var(--t-text);
+  --color-white-100: var(--t-accentText);
+
+  /* Borders. */
+  --border-color-base-50: var(--t-border);
+  --border-color-base-100: var(--t-border);
+  --border-color-base-200: var(--t-border);
+  --border-color-base-300: var(--t-border);
+
+  /* Button: primary carries the accent, outline sits on a surface, ghost is text. */
+  --color-button-primary-background: var(--t-accent);
+  --color-button-primary-hover-background: color-mix(in oklab, var(--t-accent) 88%, var(--t-text));
+  --color-button-primary-text: var(--t-accentText);
+  --color-button-primary-focus-ring: var(--t-focus);
+  --color-button-outline-background: var(--t-surface);
+  --color-button-outline-hover-background: var(--t-surfaceRaised);
+  --color-button-outline-border: var(--t-border);
+  --color-button-outline-focus-ring: var(--t-focus);
+  --color-button-outline-text: var(--t-text);
+  --color-button-outline-hover-text: var(--t-text);
+  --color-button-outline-disabled-background: var(--t-surface);
+  --color-button-outline-disabled-text: var(--t-textMuted);
+  --color-button-outline-disabled-border: var(--t-border);
+  --color-button-disabled-background: var(--t-border);
+  --color-button-disabled-border: var(--t-border);
+  --color-button-disabled-text: var(--t-textMuted);
+  --color-button-ghost-text: var(--t-textMuted);
+  --color-button-ghost-hover-text: var(--t-text);
+  --color-button-ghost-hover-background: var(--t-surfaceRaised);
+
+  /* Badge: primary is the accent pair, neutral is muted on raised. */
+  --color-badge-primary-background: var(--t-accentSoft);
+  --color-badge-primary-text: var(--t-accent);
+  --color-badge-primary-icon-color: var(--t-accent);
+  --color-badge-neutral-background: var(--t-surfaceRaised);
+  --color-badge-neutral-text: var(--t-textMuted);
+  --color-badge-neutral-icon-color: var(--t-textMuted);
+
+  /* Sidebar navigation. */
+  --color-sidebar-nav-default-background: var(--t-bg);
+  --color-sidebar-nav-hover-background: var(--t-surfaceRaised);
+  --color-sidebar-nav-secondary-hover-background: var(--t-surfaceRaised);
+  --color-sidebar-nav-hover-text: var(--t-text);
+  --color-sidebar-nav-active-text: var(--t-accent);
+  --color-sidebar-nav-active-background: var(--t-accentSoft);
+  --color-sidebar-nav-focused-background: var(--t-accentSoft);
+  --color-sidebar-nav-default-text: var(--t-text);
+  --color-sidebar-nav-icon: var(--t-textMuted);
+  --color-sidebar-footer-background: var(--t-surface);
+  --color-sidebar-footer-title: var(--t-text);
+  --color-sidebar-footer-subtitle: var(--t-textMuted);
+  --color-sidebar-footer-button-text: var(--t-text);
+
+  /* Input. */
+  --color-input-background: var(--t-surface);
+  --color-input-label-text: var(--t-textMuted);
+  --color-input-placeholder-text: var(--t-textMuted);
+  --color-input-primary-focus-border: var(--t-accent);
+  --color-input-error-focus-border: var(--t-danger);
+  --color-input-error: var(--t-danger);
+
+  /* Skeleton: the border tone, pulsing. */
+  --color-skeleton-gradient-50: var(--t-border);
+  --color-skeleton-gradient-100: var(--t-surfaceRaised);
+  --color-skeleton-gradient-200: var(--t-border);
+}

@@ -18,6 +18,10 @@
 @import "../tailgrids.css";
 @import "./lib/brand/theme.css";
 @import "./brand.css";
+/* 4. theme-bridge.css — rebinds the TailGrids component tokens to the --t-*
+ *    tokens, so the components follow the brand and the theme switch. After
+ *    brand.css, because it reads what brand.css defines. */
+@import "./theme-bridge.css";
 
 /* The theme follows the system setting until someone picks one explicitly.
  * theme.css defines the tokens under [data-theme="light"|"dark"] — without this
