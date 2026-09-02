@@ -15,7 +15,8 @@
 
 const path = require("node:path");
 
-const { BLOCK, INCONCLUSIVE, NOOP, PASS, cwdOf } = require("../../lib/io.cjs");
+const { BLOCK, INCONCLUSIVE, NOOP, PASS } = require("../../lib/io.cjs");
+const { repoRoot } = require("../../lib/state-dir.cjs");
 const { spawnTool } = require("../../lib/spawn-tool.cjs");
 const { rustTouched } = require("./auto-clippy.cjs");
 
@@ -31,7 +32,10 @@ const TIMEOUT_MS = 420_000;
  */
 function run(data) {
   if (data.stop_hook_active) return NOOP;
-  const cwd = cwdOf(data);
+  // The repository root, never the payload's cwd: that is the Bash tool's
+  // working directory, and after a `cd src-tauri` in a shell call it would
+  // point the tool at a `scripts/` that does not exist there.
+  const cwd = repoRoot();
   if (!rustTouched(data.session_id, cwd)) return NOOP;
 
   process.stderr.write("[tab-cargotest] Rust changed — running tests...\n");

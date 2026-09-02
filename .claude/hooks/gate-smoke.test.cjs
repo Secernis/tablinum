@@ -242,6 +242,33 @@ for (const [name, payload, shouldBlock] of STOP_CASES) {
   const { blocked, detail } = dispatchCase("tab-stop.cjs", "Stop", payload);
   score(`stop: ${name}`, blocked, shouldBlock, detail);
 }
+{
+  // The Stop chain resolves the repository root itself. It used to take the
+  // payload's cwd — the Bash tool's working directory — and after a
+  // `cd src-tauri` in a shell call it looked for `src-tauri/scripts/verify.mjs`
+  // and crashed. A session with one edited file, dispatched from a subfolder,
+  // has to get a verify run instead of a missing module.
+  const { trackerFile } = require("./lib/session-touched.cjs");
+  const fs = require("node:fs");
+  const sid = "gate-smoke-subdir";
+  const tracker = trackerFile(sid, "edited-files");
+  fs.mkdirSync(path.dirname(tracker), { recursive: true });
+  fs.writeFileSync(tracker, `${path.join(CWD, "package.json")}\n`);
+  const res = spawnSync("node", [path.join(__dirname, "tab-stop.cjs")], {
+    cwd: path.join(CWD, "src-tauri"),
+    encoding: "utf8",
+    env: (() => { const e = { ...process.env }; delete e.TAB_HOOKS_DISABLED; return e; })(),
+    input: JSON.stringify({
+      hook_event_name: "Stop",
+      last_assistant_message: "",
+      session_id: sid,
+      workspace: { current_dir: path.join(CWD, "src-tauri") },
+    }),
+  });
+  fs.rmSync(tracker, { force: true });
+  const crashed = /Cannot find module/.test(res.stderr || "");
+  score("stop: verify runs from a subfolder", crashed || res.status === 2, false, (res.stderr || "").split("\n")[0]);
+}
 for (const [name, rules, expected] of CRASH_CASES) {
   // The crash log line is expected output here, not noise worth reading.
   const write = process.stderr.write;
@@ -262,7 +289,7 @@ for (const [name, rules, expected] of CRASH_CASES) {
   score("fail-closed set is exactly the four refusing gates", !same, false, flagged.join(", "));
 }
 
-const total = CASES.length + STOP_CASES.length + CRASH_CASES.length + 1;
+const total = CASES.length + STOP_CASES.length + CRASH_CASES.length + 2;
 process.stdout.write(`\n${pass}/${total} passed\n`);
 for (const [name, shouldBlock, line] of failures) {
   process.stdout.write(`  ${name}: expected ${shouldBlock ? "BLOCK" : "allow"} — ${line}\n`);
