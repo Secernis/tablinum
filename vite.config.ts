@@ -36,8 +36,10 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, and the hook layer's
+      //    telemetry: every gate appends to `.claude/hooks/state/`, and a
+      //    reload on each append throws away whatever the app had on screen.
+      ignored: ["**/src-tauri/**", "**/.claude/**"],
     },
   },
 }));
