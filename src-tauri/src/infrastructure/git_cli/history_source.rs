@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::application::ports::HistorySource;
 use crate::application::AppError;
-use crate::domain::history::HistorySummary;
+use crate::domain::history::{Commit, HistorySummary};
 use crate::domain::repository::{HeadInfo, RepoPath, Repository};
 
 use super::parse;
@@ -53,6 +53,15 @@ fn native_path(s: &str) -> PathBuf {
     }
 }
 
+impl GitCli {
+    /// The log format the recent-commits parser reads; one place, next to
+    /// the call that uses it.
+    fn log_format() -> String {
+        let f = parse::FIELD;
+        format!("--format={}%h{f}%s{f}%an{f}%ae{f}%ct", parse::RECORD)
+    }
+}
+
 impl HistorySource for GitCli {
     fn describe(&self, path: &RepoPath) -> Result<Repository, AppError> {
         let top = runner::run(path.as_path(), &["rev-parse", "--show-toplevel"]).map_err(to_app_error)?;
@@ -78,6 +87,20 @@ impl HistorySource for GitCli {
         }
     }
 
+    fn commits(&self, repository: &Repository, skip: usize, limit: usize) -> Result<Vec<Commit>, AppError> {
+        let skip = format!("--skip={skip}");
+        let limit = limit.to_string();
+        let format = Self::log_format();
+        match runner::run(
+            repository.path().as_path(),
+            &["log", &skip, "-n", &limit, &format, "--shortstat", "HEAD"],
+        ) {
+            Ok(out) => Ok(parse::parse_recent(&out)),
+            Err(e) if Self::is_unborn(&e) => Ok(Vec::new()),
+            Err(e) => Err(to_app_error(e)),
+        }
+    }
+
     fn commit_count(&self, repository: &Repository) -> Result<u64, AppError> {
         match runner::run(repository.path().as_path(), &["rev-list", "--count", "HEAD"]) {
             Ok(out) => Ok(out.trim().parse().unwrap_or(0)),
@@ -94,17 +117,16 @@ impl HistorySource for GitCli {
         let git = |args: &[&str]| runner::run(cwd, args).map_err(to_app_error);
 
         let commit_count = self.commit_count(repository)?;
-        let author_count = parse::count_distinct_lines(&git(&["log", "--format=%aE", "HEAD"])?);
+        // `-e` keeps the email, `-n` orders by count; `HEAD` as an explicit
+        // revision, because a bare shortlog would read stdin when not on a tty.
+        let authors = parse::parse_shortlog(&git(&["shortlog", "-sne", "HEAD"])?);
         let first_commit_at = parse::parse_oldest_timestamp(&git(&["log", "--max-parents=0", "--format=%ct", "HEAD"])?);
 
-        let limit = recent_limit.to_string();
-        let f = parse::FIELD;
-        let format = format!("--format={}%h{f}%s{f}%an{f}%ae{f}%ct", parse::RECORD);
-        let recent = parse::parse_recent(&git(&["log", "-n", &limit, &format, "--shortstat", "HEAD"])?);
+        let recent = self.commits(repository, 0, recent_limit)?;
 
         Ok(HistorySummary {
             commit_count,
-            author_count,
+            authors,
             first_commit_at,
             last_commit_at: Some(head.at),
             recent,

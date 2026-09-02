@@ -6,7 +6,7 @@
 //! records) because a subject line may contain any printable character,
 //! including tabs and pipes.
 
-use crate::domain::history::{Author, Commit, CommitStats};
+use crate::domain::history::{Author, AuthorActivity, Commit, CommitStats};
 use crate::domain::repository::HeadInfo;
 
 /// Separates fields within one record.
@@ -93,14 +93,27 @@ pub fn parse_oldest_timestamp(out: &str) -> Option<i64> {
     out.lines().filter_map(|l| l.trim().parse::<i64>().ok()).min()
 }
 
-/// Distinct non-empty lines, case-folded — one `%aE` per line.
-pub fn count_distinct_lines(out: &str) -> u64 {
-    let set: std::collections::HashSet<String> = out
-        .lines()
-        .map(|l| l.trim().to_lowercase())
-        .filter(|l| !l.is_empty())
-        .collect();
-    set.len() as u64
+/// `git shortlog -sne`: one `<count><TAB><name> <<email>>` per line, most first.
+///
+/// A line without the angle-bracket email (an old commit with none) keeps the
+/// whole rest as the name and an empty email; it is still a person.
+pub fn parse_shortlog(out: &str) -> Vec<AuthorActivity> {
+    out.lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            let (count, rest) = line.split_once(char::is_whitespace)?;
+            let commits: u64 = count.parse().ok()?;
+            let rest = rest.trim();
+            let (name, email) = match (rest.rfind('<'), rest.ends_with('>')) {
+                (Some(open), true) => (rest[..open].trim(), rest[open + 1..rest.len() - 1].trim()),
+                _ => (rest, ""),
+            };
+            Some(AuthorActivity {
+                author: Author { name: name.to_string(), email: email.to_string() },
+                commits,
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -147,7 +160,14 @@ mod tests {
     }
 
     #[test]
-    fn distinct_authors_fold_case() {
-        assert_eq!(count_distinct_lines("A@x.io\na@x.io\nb@x.io\n\n"), 2);
+    fn shortlog_lines_become_authors() {
+        let out = "   120\tMax Muster <max@x.io>\n     3\tLegacy Bot\n";
+        let authors = parse_shortlog(out);
+        assert_eq!(authors.len(), 2);
+        assert_eq!(authors[0].commits, 120);
+        assert_eq!(authors[0].author.name, "Max Muster");
+        assert_eq!(authors[0].author.email, "max@x.io");
+        assert_eq!(authors[1].author.name, "Legacy Bot");
+        assert_eq!(authors[1].author.email, "");
     }
 }

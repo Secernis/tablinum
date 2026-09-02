@@ -19,6 +19,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             interface::commands::discover_repositories,
+            interface::commands::list_commits,
             interface::commands::open_repository,
         ])
         .run(tauri::generate_context!())

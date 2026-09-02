@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 
 use crate::domain::analysis::CodeSize;
-use crate::domain::history::HistorySummary;
+use crate::domain::history::{Commit, HistorySummary};
 use crate::domain::repository::{HeadInfo, RepoPath, Repository};
 
 use super::AppError;
@@ -34,6 +34,9 @@ pub trait HistorySource: Sync {
 
     /// Totals plus the `recent_limit` newest commits.
     fn summarize(&self, repository: &Repository, recent_limit: usize) -> Result<HistorySummary, AppError>;
+
+    /// A page of the log, newest first: `limit` commits after skipping `skip`.
+    fn commits(&self, repository: &Repository, skip: usize, limit: usize) -> Result<Vec<Commit>, AppError>;
 }
 
 /// Measures a repository's code.

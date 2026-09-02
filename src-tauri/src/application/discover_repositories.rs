@@ -99,7 +99,7 @@ mod tests {
     use super::*;
     use crate::application::AppError;
     use crate::domain::analysis::CodeSize;
-    use crate::domain::history::HistorySummary;
+    use crate::domain::history::{Commit, HistorySummary};
     use crate::domain::repository::{HeadInfo, RepoPath, Repository};
     use std::sync::Mutex;
 
@@ -131,6 +131,9 @@ mod tests {
         }
         fn summarize(&self, _r: &Repository, _n: usize) -> Result<HistorySummary, AppError> {
             Ok(HistorySummary::empty())
+        }
+        fn commits(&self, _r: &Repository, _skip: usize, _limit: usize) -> Result<Vec<Commit>, AppError> {
+            Ok(Vec::new())
         }
     }
 

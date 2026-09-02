@@ -6,9 +6,11 @@
 
 mod discover_repositories;
 mod error;
+mod list_commits;
 mod open_repository;
 pub mod ports;
 
 pub use discover_repositories::{discover_repositories, DiscoverRequest};
 pub use error::AppError;
+pub use list_commits::list_commits;
 pub use open_repository::{open_repository, OpenedRepository};

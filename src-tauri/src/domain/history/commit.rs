@@ -8,6 +8,13 @@ pub struct Author {
     pub email: String,
 }
 
+/// How much one author contributed, in commits.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorActivity {
+    pub author: Author,
+    pub commits: u64,
+}
+
 /// The size of a commit, as git's shortstat counts it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CommitStats {

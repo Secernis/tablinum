@@ -3,5 +3,5 @@
 mod commit;
 mod summary;
 
-pub use commit::{Author, Commit, CommitStats};
+pub use commit::{Author, AuthorActivity, Commit, CommitStats};
 pub use summary::HistorySummary;

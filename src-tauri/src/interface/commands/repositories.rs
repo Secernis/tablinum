@@ -6,7 +6,7 @@ use crate::application::{self, DiscoverRequest};
 use crate::infrastructure::filesystem::FsLocator;
 use crate::infrastructure::git_cli::GitCli;
 use crate::infrastructure::tokei::TokeiCodeSize;
-use crate::interface::dto::{ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto};
+use crate::interface::dto::{CommitDto, ErrorDto, LocatedRepositoryDto, OpenedRepositoryDto};
 
 /// How deep a scan looks when the frontend does not say.
 ///
@@ -45,10 +45,25 @@ pub async fn discover_repositories(
     })
 }
 
+/// A page of the log of the repository at `path`: `limit` commits after `skip`.
+#[tauri::command]
+pub async fn list_commits(path: String, skip: usize, limit: usize) -> Result<Vec<CommitDto>, ErrorDto> {
+    let joined =
+        tauri::async_runtime::spawn_blocking(move || application::list_commits(&GitCli, path, skip, limit)).await;
+    match joined {
+        Ok(result) => result
+            .map(|commits| commits.into_iter().map(CommitDto::from).collect())
+            .map_err(ErrorDto::from),
+        Err(e) => Err(ErrorDto::Failed {
+            message: format!("the log task did not finish: {e}"),
+        }),
+    }
+}
+
 /// Open the repository at `path` and summarize it.
 #[tauri::command]
 pub async fn open_repository(path: String) -> Result<OpenedRepositoryDto, ErrorDto> {
-    let joined = tauri::async_runtime::spawn_blocking(move || application::open_repository(&GitCli, path)).await;
+    let joined = tauri::async_runtime::spawn_blocking(move || application::open_repository(&GitCli, &TokeiCodeSize, path)).await;
     match joined {
         Ok(result) => result.map(OpenedRepositoryDto::from).map_err(ErrorDto::from),
         Err(e) => Err(ErrorDto::Failed {

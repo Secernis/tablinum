@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::application::{AppError, OpenedRepository};
 use crate::domain::analysis::CodeSize;
-use crate::domain::history::{Commit, HistorySummary};
+use crate::domain::history::{AuthorActivity, Commit, HistorySummary};
 use crate::domain::repository::LocatedRepository;
 
 /// One language's share of the code.
@@ -100,12 +100,32 @@ impl From<Commit> for CommitDto {
     }
 }
 
+/// One author's share of the commits.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorActivityDto {
+    pub name: String,
+    pub email: String,
+    pub commits: u64,
+}
+
+impl From<AuthorActivity> for AuthorActivityDto {
+    fn from(a: AuthorActivity) -> Self {
+        AuthorActivityDto {
+            name: a.author.name,
+            email: a.author.email,
+            commits: a.commits,
+        }
+    }
+}
+
 /// The overview numbers.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistorySummaryDto {
     pub commit_count: u64,
     pub author_count: u64,
+    pub authors: Vec<AuthorActivityDto>,
     pub first_commit_at: Option<i64>,
     pub last_commit_at: Option<i64>,
     pub recent: Vec<CommitDto>,
@@ -115,7 +135,8 @@ impl From<HistorySummary> for HistorySummaryDto {
     fn from(h: HistorySummary) -> Self {
         HistorySummaryDto {
             commit_count: h.commit_count,
-            author_count: h.author_count,
+            author_count: h.author_count(),
+            authors: h.authors.into_iter().map(AuthorActivityDto::from).collect(),
             first_commit_at: h.first_commit_at,
             last_commit_at: h.last_commit_at,
             recent: h.recent.into_iter().map(CommitDto::from).collect(),
@@ -131,6 +152,7 @@ pub struct OpenedRepositoryDto {
     pub name: String,
     pub branch: Option<String>,
     pub history: HistorySummaryDto,
+    pub code: Option<CodeSizeDto>,
 }
 
 impl From<OpenedRepository> for OpenedRepositoryDto {
@@ -140,6 +162,7 @@ impl From<OpenedRepository> for OpenedRepositoryDto {
             name: o.repository.name(),
             branch: o.repository.branch().map(str::to_string),
             history: o.history.into(),
+            code: o.code.map(CodeSizeDto::from),
         }
     }
 }
