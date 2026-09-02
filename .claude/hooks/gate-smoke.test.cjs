@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * End-to-end suite for the PreToolUse gates.
+ * End-to-end suite for the PreToolUse gates and the Stop chain.
  *
  * Every other test in a system like this checks a rule in isolation, which is
  * the easy half. What actually decides whether a gate works is the whole chain:
@@ -119,31 +119,122 @@ const CASES = [
   ["English comment", { tool_input: { content: "// The parser drops CRLF because git normalises it on the way out.", file_path: `${CWD}/src/c.ts` }, tool_name: "Write" }, false],
 ];
 
+/**
+ * The Stop chain, end to end. Same shape as `CASES`, dispatched through
+ * `tab-stop.cjs`. The fixed session id has no edit tracker, so the verify,
+ * clippy and cargo-test rules stand down and what is exercised is the reply
+ * judgement — the part of the chain that fires on every turn.
+ *
+ * A reply of German prose long enough to judge, and the same reply in English:
+ * the language guard has to tell them apart, and the loop guard
+ * (`stop_hook_active`) has to keep the second Stop from re-blocking.
+ */
+const GERMAN_REPLY =
+  "Die Änderung ist drin. Der Parser liest jetzt auch Zeilen mit CRLF, weil git sie " +
+  "beim Auschecken normalisiert und der alte Code das nicht erwartet hat. Die Tests " +
+  "laufen durch, und der Eintrag im CHANGELOG steht unter Fixed.";
+const ENGLISH_REPLY =
+  "The change is in. The parser now also reads lines with CRLF, because git normalises " +
+  "them on checkout and the old code did not expect that. The tests pass, and the " +
+  "CHANGELOG entry is under Fixed. Let me know if you want the same for the status view.";
+
+/** `[name, payload, shouldBlock]` for the Stop dispatcher. */
+const STOP_CASES = [
+  ["quiet turn", { last_assistant_message: "" }, false],
+  ["German reply", { last_assistant_message: GERMAN_REPLY }, false],
+  ["English reply", { last_assistant_message: ENGLISH_REPLY }, true],
+  ["English reply under the loop guard", { last_assistant_message: ENGLISH_REPLY, stop_hook_active: true }, false],
+];
+
+/**
+ * A rule that throws, in-process against `runRules`. What is under test is the
+ * dispatcher's own contract: a crash is fail-open by default and fail-closed
+ * for a rule that says so. Spawning the real dispatcher cannot exercise this
+ * without a deliberately broken rule in the registry.
+ */
+const CRASHING = (extra) => ({ id: "crash", run: () => { throw new Error("boom"); }, ...extra });
+const { BLOCK, PASS, runRules } = require("./lib/io.cjs");
+const CRASH_CASES = [
+  ["crashing rule is fail-open by default", [CRASHING({})], PASS],
+  ["crashing fail-closed rule blocks", [CRASHING({ failClosed: true })], BLOCK],
+  ["fail-closed crash short-circuits", [CRASHING({ failClosed: true }), { id: "never", run: () => { throw new Error("reached"); } }], BLOCK],
+];
+
+/** Every gate with the opt-in has to be one of the four that refuse by design. */
+const FAIL_CLOSED_IDS = ["secret-write", "surface-protect", "tauri-security", "bash-gates"];
+
 let pass = 0;
 const failures = [];
-for (const [name, payload, shouldBlock] of CASES) {
-  const res = spawnSync("node", [path.join(__dirname, "tab-pretooluse.cjs")], {
+/**
+ * Score one case and print its line.
+ * @param {string} name - Case label.
+ * @param {boolean} blocked - What the dispatcher did.
+ * @param {boolean} shouldBlock - What it was expected to do.
+ * @param {string} detail - First stderr line, for the failure summary.
+ * @returns {void}
+ */
+function score(name, blocked, shouldBlock, detail) {
+  const good = blocked === shouldBlock;
+  if (good) pass += 1;
+  else failures.push([name, shouldBlock, detail]);
+  process.stdout.write(
+    `${good ? "PASS" : "FAIL"}  ${(blocked ? "BLOCK" : "allow").padEnd(6)} ${name}\n`,
+  );
+}
+
+/**
+ * Spawn one dispatcher with a payload and report whether it blocked.
+ * @param {string} entry - Dispatcher file name under `.claude/hooks/`.
+ * @param {string} event - Hook event name for the payload.
+ * @param {object} payload - Case payload, merged over the fixed envelope.
+ * @returns {{blocked: boolean, detail: string}} Verdict and first stderr line.
+ */
+function dispatchCase(entry, event, payload) {
+  const res = spawnSync("node", [path.join(__dirname, entry)], {
     cwd: CWD,
     encoding: "utf8",
     input: JSON.stringify({
       ...payload,
-      hook_event_name: "PreToolUse",
+      hook_event_name: event,
       // A fixed id keeps the once-per-session hint rules quiet after their first
       // dispatch, so their envelope cannot be mistaken for a verdict.
       session_id: "gate-smoke",
       workspace: { current_dir: CWD },
     }),
   });
-  const blocked = res.status === 2;
-  const good = blocked === shouldBlock;
-  if (good) pass += 1;
-  else failures.push([name, shouldBlock, (res.stderr || "").split("\n")[0]]);
-  process.stdout.write(
-    `${good ? "PASS" : "FAIL"}  ${(blocked ? "BLOCK" : "allow").padEnd(6)} ${name}\n`,
-  );
+  return { blocked: res.status === 2, detail: (res.stderr || "").split("\n")[0] };
 }
 
-process.stdout.write(`\n${pass}/${CASES.length} passed\n`);
+for (const [name, payload, shouldBlock] of CASES) {
+  const { blocked, detail } = dispatchCase("tab-pretooluse.cjs", "PreToolUse", payload);
+  score(name, blocked, shouldBlock, detail);
+}
+for (const [name, payload, shouldBlock] of STOP_CASES) {
+  const { blocked, detail } = dispatchCase("tab-stop.cjs", "Stop", payload);
+  score(`stop: ${name}`, blocked, shouldBlock, detail);
+}
+for (const [name, rules, expected] of CRASH_CASES) {
+  // The crash log line is expected output here, not noise worth reading.
+  const write = process.stderr.write;
+  process.stderr.write = () => true;
+  let verdict;
+  try {
+    verdict = runRules({}, rules, "gate-smoke");
+  } finally {
+    process.stderr.write = write;
+  }
+  score(name, verdict === BLOCK, expected === BLOCK, `verdict ${verdict}`);
+}
+{
+  const { PRETOOLUSE_RULES } = require("./tab-pretooluse.cjs");
+  const flagged = PRETOOLUSE_RULES.filter((r) => r.failClosed).map((r) => r.id).sort();
+  const wanted = [...FAIL_CLOSED_IDS].sort();
+  const same = JSON.stringify(flagged) === JSON.stringify(wanted);
+  score("fail-closed set is exactly the four refusing gates", !same, false, flagged.join(", "));
+}
+
+const total = CASES.length + STOP_CASES.length + CRASH_CASES.length + 1;
+process.stdout.write(`\n${pass}/${total} passed\n`);
 for (const [name, shouldBlock, line] of failures) {
   process.stdout.write(`  ${name}: expected ${shouldBlock ? "BLOCK" : "allow"} — ${line}\n`);
 }

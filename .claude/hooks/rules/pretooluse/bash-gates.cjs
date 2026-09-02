@@ -156,4 +156,6 @@ function run(data) {
   return PASS;
 }
 
-module.exports = { CHANNELLED_GIT, DESTRUCTIVE, gitSubcommand, id: "bash-gates", run };
+// The commands this gate channels destroy work or skip every other check; a
+// crash that let one through would be indistinguishable from a pass.
+module.exports = { CHANNELLED_GIT, DESTRUCTIVE, failClosed: true, gitSubcommand, id: "bash-gates", run };

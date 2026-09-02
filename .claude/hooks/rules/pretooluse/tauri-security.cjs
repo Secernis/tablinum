@@ -127,4 +127,6 @@ function run(data) {
   return PASS;
 }
 
-module.exports = { BROAD_PERMISSIONS, CONFIG_WEAKENINGS, id: "tauri-security", run };
+// A capability grant is permanent in practice — nobody narrows a permission
+// that already works — so a crash here must refuse rather than wave it through.
+module.exports = { BROAD_PERMISSIONS, CONFIG_WEAKENINGS, failClosed: true, id: "tauri-security", run };

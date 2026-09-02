@@ -191,8 +191,16 @@ function outcomeOf(verdict, hinted) {
  * behave exactly like `PASS`, so the added telemetry granularity cannot turn
  * into an enforcement change.
  *
+ * A rule that THROWS is a different matter. The default is fail-open: the crash
+ * is logged as "e" and the chain continues, because a bug in a style gate must
+ * not lock every edit in the repository. A rule that declares `failClosed: true`
+ * opts out of that default — its crash blocks. That flag belongs on the gates
+ * whose whole purpose is to refuse (secrets, the protected surfaces, the Tauri
+ * capability surface, the channelled git commands): for those, "the gate did not
+ * run" letting the call through is precisely the failure they exist to prevent.
+ *
  * @param {object} data - Parsed hook payload.
- * @param {Array<{id: string, run: (data: object) => number}>} rules - Ordered registry.
+ * @param {Array<{id: string, run: (data: object) => number, failClosed?: boolean}>} rules - Ordered registry.
  * @param {string} label - Dispatcher name for error prefixes.
  * @param {Array<object>} [timings] - Optional telemetry sink.
  * @returns {number} `PASS` (all passed) or `BLOCK` (a rule blocked).
@@ -225,6 +233,13 @@ function runRules(data, rules, label, timings) {
       // otherwise be telemetrically identical to one that passed cleanly.
       push("e");
       process.stderr.write(`[${label}] rule '${rule.id}' failed: ${e.message}\n`);
+      if (rule.failClosed) {
+        process.stderr.write(
+          `[${label}] '${rule.id}' is a fail-closed gate, so its crash refuses the call. ` +
+            "Fix the rule (or report it) rather than working around the block.\n",
+        );
+        return BLOCK;
+      }
     }
   }
   return PASS;

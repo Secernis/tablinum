@@ -98,4 +98,6 @@ function run(data) {
   );
 }
 
-module.exports = { SECRET_SHAPES, findShape, id: "secret-write", run };
+// A secret that slips past a crashed scanner is already in the history by the
+// time anyone reads the crash log; this gate refuses rather than guesses.
+module.exports = { SECRET_SHAPES, failClosed: true, findShape, id: "secret-write", run };

@@ -121,4 +121,6 @@ function run(data) {
   );
 }
 
-module.exports = { SURFACES, id: "surface-protect", run, surfaceOf };
+// The protected surfaces include the hooks themselves; a crash here letting an
+// edit through would be the guard dissolving the moment it broke.
+module.exports = { SURFACES, failClosed: true, id: "surface-protect", run, surfaceOf };

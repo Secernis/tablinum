@@ -30,6 +30,14 @@ The same principle runs through the hook layer itself: a rule that cannot
 evaluate reports `INCONCLUSIVE` rather than passing, so "the gate did not run"
 and "the gate found nothing" never look alike in the telemetry.
 
+A rule that **crashes** is judged by what it guards. The default is fail-open —
+the crash is logged and the chain continues — because a bug in a style gate
+must not lock every edit in the repository. Four gates opt out of that default
+with `failClosed: true`, and their crash refuses the call: `secret-write`,
+`surface-protect`, `tauri-security` and `bash-gates`. For those, a crash that
+let the call through would be precisely the failure they exist to prevent, and
+the smoke suite pins the set so it cannot grow or shrink unnoticed.
+
 ## Rendering data the app did not author
 
 A branch name, a commit message, a file path, a remote URL — all of it comes from
