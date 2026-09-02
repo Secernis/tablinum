@@ -1,8 +1,7 @@
 import type { WorkspaceStore } from "@/application/workspace/workspace-store";
 import { logWarn } from "@/lib/log";
 
-const SCAN_ROOTS_KEY = "tablinum.scan-roots";
-const ADDED_KEY = "tablinum.added-repositories";
+const REPOSITORIES_KEY = "tablinum.repositories";
 
 const isPath = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
@@ -38,9 +37,7 @@ function writeList(key: string, list: unknown[]): void {
 /** The workspace memory in local storage. */
 export function createLocalWorkspaceStore(): WorkspaceStore {
   return {
-    readScanRoots: () => readList(SCAN_ROOTS_KEY, isPath),
-    writeScanRoots: (roots) => writeList(SCAN_ROOTS_KEY, roots),
-    readAddedRepositories: () => readList(ADDED_KEY, isPath),
-    writeAddedRepositories: (paths) => writeList(ADDED_KEY, paths),
+    readRepositories: () => readList(REPOSITORIES_KEY, isPath),
+    writeRepositories: (paths) => writeList(REPOSITORIES_KEY, paths),
   };
 }

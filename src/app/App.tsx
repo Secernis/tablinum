@@ -1,8 +1,8 @@
 import { ArrowLeft } from "@tailgrids/icons";
 import { useState } from "react";
 
-import { useDiscoverRepositories } from "@/application/repository/use-discover-repositories";
 import { useOpenRepository } from "@/application/repository/use-open-repository";
+import { useRepositoryList } from "@/application/repository/use-repository-list";
 import { ServicesProvider, type Services } from "@/application/services-context";
 import { Button } from "@/components/tailgrids/core/button";
 import type { OpenedRepository } from "@/domain/history";
@@ -39,17 +39,15 @@ export default function App() {
 
 function Workspace() {
   const [opened, setOpened] = useState<OpenedRepository | null>(null);
-  const discovery = useDiscoverRepositories();
+  const list = useRepositoryList();
   const opener = useOpenRepository();
 
-  function settle(result: OpenedRepository | null) {
-    if (result) setOpened(result);
-  }
-
-  function backToList() {
-    setOpened(null);
-    // A repository opened through the dialog while away is on the list now.
-    void discovery.scan();
+  /** Opening from the dialog also puts the repository on the list. */
+  async function openFromDialog() {
+    const result = await opener.openFromDialog();
+    if (!result) return;
+    list.add(result.repository.path);
+    setOpened(result);
   }
 
   if (opened) {
@@ -58,7 +56,7 @@ function Workspace() {
         title={opened.repository.name}
         subtitle={opened.repository.path}
         actions={
-          <Button variant="primary" appearance="outline" size="sm" onPress={backToList}>
+          <Button variant="primary" appearance="outline" size="sm" onPress={() => setOpened(null)}>
             <ArrowLeft />
             Repositories
           </Button>
@@ -76,24 +74,20 @@ function Workspace() {
       subtitle="Choose the history to read"
       actions={
         <PickerActions
-          onAddRoots={() => void discovery.addRoots()}
-          onOpenFromDialog={() => void opener.openFromDialog().then(settle)}
-          disabled={opener.opening !== null}
+          onAddRoots={() => void list.addFromFolders()}
+          onOpenFromDialog={() => void openFromDialog()}
+          disabled={opener.opening !== null || list.status === "loading"}
         />
       }
       controls={<ThemeToggle />}
     >
       <RepoPicker
-        roots={discovery.roots}
-        onRemoveRoot={discovery.removeRoot}
-        added={discovery.added}
-        onRemoveAdded={discovery.removeAdded}
-        found={discovery.found}
-        scanStatus={discovery.status}
-        onScan={() => void discovery.scan()}
+        repositories={list.repositories}
+        status={list.status}
+        onRemove={list.remove}
         opening={opener.opening}
-        onOpen={(path) => void opener.open(path).then(settle)}
-        error={opener.error ?? discovery.error}
+        onOpen={(path) => void opener.open(path).then((r) => r && setOpened(r))}
+        error={opener.error ?? list.error}
       />
     </AppShell>
   );
