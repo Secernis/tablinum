@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "branch": "node scripts/branch.mjs",
-    "brand:build": "python design/build-all.py",
+    "brand:build": "node scripts/python.mjs design/build-all.py",
     "build": "tsc && vite build",
     "changelog": "node scripts/changelog.mjs",
     "commit": "node scripts/commit.mjs",

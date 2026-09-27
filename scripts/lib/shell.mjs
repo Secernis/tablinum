@@ -26,6 +26,15 @@ import { fileURLToPath } from "node:url";
 /** Absolute repository root, resolved from this file's location. */
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
+/**
+ * The Python interpreter's command name on this platform.
+ *
+ * Neither spelling works everywhere: macOS and most Linux distributions ship
+ * only `python3`, while on Windows `python3` is usually the Store placeholder
+ * that opens an install page instead of running anything.
+ */
+export const PYTHON = process.platform === "win32" ? "python" : "python3";
+
 /** ANSI codes, disabled when the output is not a terminal or NO_COLOR is set. */
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
 const code = (n) => (useColor ? `[${n}m` : "");

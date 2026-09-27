@@ -40,6 +40,7 @@ import { join } from "node:path";
 
 import {
   ExitCode,
+  PYTHON,
   ROOT,
   fail,
   git,
@@ -229,7 +230,7 @@ function main() {
   if (!args["skip-assets"]) {
     step("mark");
     const assetSteps = [
-      ["build-all.py", ["python", ["design/build-all.py"]]],
+      ["build-all.py", [PYTHON, ["design/build-all.py"]]],
       ["distribute.mjs", ["node", ["design/scripts/distribute.mjs"]]],
       ["small-icons.mjs", ["node", ["design/scripts/small-icons.mjs"]]],
     ];
