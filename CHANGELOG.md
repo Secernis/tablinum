@@ -41,6 +41,7 @@ versioning is [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - Dates, relative times and numbers render in English regardless of the system language
+- On Linux with an NVIDIA GPU under Wayland the window no longer closes right after launch
 
 
 
