@@ -17,7 +17,8 @@
  * `--none` is a first-class option, not an escape hatch. A refactor, a test or a
  * build fix genuinely has nothing a user would notice, and saying so is a
  * decision. It writes a per-session marker the Stop-time reminder reads, so the
- * declaration is recorded rather than merely tolerated.
+ * declaration is recorded rather than merely tolerated. An entry writes the same
+ * marker, because the reminder cannot see this script's edit to the file.
  *
  * What it deliberately will NOT do: write a `## [X.Y.Z]` heading. Only
  * `npm run release` knows the number, because only it decides the bump and writes
@@ -93,20 +94,27 @@ function readChangelog() {
 }
 
 /**
- * Record that this session declared nothing user-visible.
+ * Record that this session discharged its changelog duty.
  *
- * The marker is per session, so the declaration applies to the work in flight
- * rather than becoming a permanent opt-out.
+ * Written for an entry as much as for `--none`: the Stop reminder only sees
+ * edits made through the edit tools, so without the marker the one channel it
+ * recommends — this script — would leave the reminder firing on every turn.
+ * The marker is per session, so it covers the work in flight rather than
+ * becoming a permanent opt-out.
  *
- * @param {string} reason - Why there is nothing to document.
+ * `CLAUDE_CODE_SESSION_ID` is the name Claude Code exports; the other two are
+ * kept for callers that set one by hand.
+ *
+ * @param {string} line - What was recorded: the entry, or why there is none.
  * @returns {void}
  */
-function writeNoneMarker(reason) {
-  const sessionId = process.env.CLAUDE_SESSION_ID || process.env.TAB_SESSION_ID;
+function writeSessionMarker(line) {
+  const sessionId =
+    process.env.CLAUDE_CODE_SESSION_ID || process.env.CLAUDE_SESSION_ID || process.env.TAB_SESSION_ID;
   if (!sessionId) {
     warn(
-      "no session id in the environment — the declaration is recorded here but the Stop reminder " +
-        "will not see it. Say in your reply why nothing is user-visible.",
+      "no session id in the environment — the Stop reminder will not see this. " +
+        "If it fires anyway, say in your reply what was recorded.",
     );
     return;
   }
@@ -119,7 +127,7 @@ function writeNoneMarker(reason) {
     sessionId.replace(/[^A-Za-z0-9_-]/g, "_"),
   );
   mkdirSync(dirname(file), { recursive: true });
-  appendFileSync(file, `${new Date().toISOString()}  ${reason}\n`, "utf8");
+  appendFileSync(file, `${new Date().toISOString()}  ${line}\n`, "utf8");
 }
 
 /**
@@ -180,7 +188,7 @@ function main() {
         ExitCode.USAGE,
       );
     }
-    writeNoneMarker(args.none);
+    writeSessionMarker(`none: ${args.none}`);
     step("nothing user-visible");
     ok(`recorded: ${args.none}`);
     info("If that turns out to be wrong, add the entry — this declaration is not binding.");
@@ -215,6 +223,9 @@ function main() {
     ok(`${style.cyan(category)}: ${entry}`);
   }
   writeFileSync(FILE, text, "utf8");
+  for (const category of chosen) {
+    writeSessionMarker(`${category.toLowerCase()}: ${String(args[category.toLowerCase()]).trim()}`);
+  }
 
   const problems = validateSchema(text);
   if (problems.length > 0) {
