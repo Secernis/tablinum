@@ -7,6 +7,9 @@
  *   npm run push -- --force-gate    re-run the gate even with a stored verdict
  *   npm run push -- --skip-checks   emergency exit; runs nothing
  *
+ * Runs on a feature branch and on `main` alike: work reaches `main` through a
+ * local merge, so pushing it is the end of the flow rather than a bypass.
+ *
  * One checked mode. The verify gate — the same one the Stop hook runs — is what
  * every push gets, because the point at which code leaves this machine is the
  * last point at which a problem is still cheap. After that it is in someone
@@ -142,12 +145,11 @@ async function main() {
 
   const branch = currentBranch();
   if (branch === null) fail("not a git repository.");
-  if (branch === "main" || branch === "master") {
-    fail(
-      `you are on '${branch}'. Push from a feature branch and merge through a pull request — ` +
-        "a direct push to the default branch has no reviewable boundary.",
-    );
-  }
+  // Work reaches `main` by a local merge of a feature branch, and that branch is
+  // the reviewable boundary; nothing is ever committed on `main` directly. So
+  // pushing it is the normal end of the flow, gated like any other push. A pull
+  // request from `main` into itself does not exist, hence no offer there.
+  const onDefault = branch === "main" || branch === "master";
 
   const dirty = status();
   if (dirty.length > 0) {
@@ -206,7 +208,7 @@ async function main() {
   }
   ok(`pushed ${branch}`);
 
-  if (!args["no-pr"]) await offerPullRequest(branch, Boolean(args.yes));
+  if (!onDefault && !args["no-pr"]) await offerPullRequest(branch, Boolean(args.yes));
 }
 
 await main();
