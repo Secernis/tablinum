@@ -336,17 +336,21 @@ function main() {
 
   const branch = currentBranch();
   if (branch === null) fail("not a git repository.");
-  if (branch === "main" || branch === "master") {
-    fail(
-      `you are on '${branch}'. Product commits belong on a feature branch — ` +
-        "`npm run branch -- <name>` opens one and moves your uncommitted work with it.",
-    );
-  }
 
   const files = Array.isArray(args.files) ? args.files.map((f) => f.replace(/\\/g, "/")) : null;
   if (!files || files.length === 0) {
     process.stdout.write(`${HELP}\n`);
     fail("name the files: `--files <path...>`. Run `--inspect` first if you are unsure.", ExitCode.USAGE);
+  }
+  // Checked after the file list is known: tooling paths may land on `main`, so
+  // the verdict depends on what the commit contains, not only where it is made.
+  const product = files.filter((f) => !conventions.HARNESS_PATH_RE.test(f.replace(/^\.\//, "")));
+  if (conventions.BASE_BRANCHES.has(branch) && product.length > 0) {
+    fail(
+      `you are on '${branch}'. Product commits belong on a feature branch — ` +
+        "`npm run branch -- <name>` opens one and moves your uncommitted work with it.\n" +
+        `Only tooling paths (CLAUDE.md, .claude/, memory/) may be committed here; not: ${product.join(", ")}`,
+    );
   }
   if (!args.type) fail("declare the type: `--type <type>`.", ExitCode.USAGE);
   if (!args.message) fail("write the subject: `--message \"...\"`.", ExitCode.USAGE);

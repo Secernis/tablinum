@@ -24,6 +24,16 @@ const BRANCH_BODY_MAX = 60;
 const BASE_BRANCHES = new Set(["main", "master"]);
 
 /**
+ * Paths that configure the tooling rather than ship in the app, and so may be
+ * edited and committed on any branch, `main` included.
+ *
+ * Keep in step with `ALLOWLIST_RE` in the `branch-protection` hook: the hook
+ * lets the edit through, and a commit script that then refused the same file
+ * would leave the work stranded with no channel to land it.
+ */
+const HARNESS_PATH_RE = /^(?:CLAUDE\.md$|\.claude\/|memory\/|\.claude-plugin\/)/;
+
+/**
  * Turn what someone typed into a conventional branch name.
  *
  * `Add SSH support` → `feat/add-ssh-support`; `fix/CRLF parser` → `fix/crlf-parser`.
@@ -185,6 +195,7 @@ module.exports = {
   BRANCH_PREFIXES,
   BRANCH_RE,
   COMMIT_TYPES,
+  HARNESS_PATH_RE,
   SCOPE_RE,
   checkBranchName,
   checkScope,
