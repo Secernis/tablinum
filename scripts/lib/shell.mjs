@@ -78,7 +78,10 @@ export function run(cmd, args, opts = {}) {
     ok: res.status === 0,
     status: res.status === null ? 1 : res.status,
     stderr: res.stderr || "",
-    stdout: (res.stdout || "").trim(),
+    // End only: leading whitespace can be data. `git status --porcelain` starts
+    // an unstaged change with a space (` M path`), and trimming it shifts the
+    // columns so the first path loses its first character.
+    stdout: (res.stdout || "").trimEnd(),
   };
 }
 
