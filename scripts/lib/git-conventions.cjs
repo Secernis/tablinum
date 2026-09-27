@@ -27,7 +27,7 @@ const BASE_BRANCHES = new Set(["main", "master"]);
  * Paths that configure the tooling rather than ship in the app, and so may be
  * edited and committed on any branch, `main` included.
  *
- * Keep in step with `ALLOWLIST_RE` in the `branch-protection` hook: the hook
+ * Read by the `branch-protection` hook as well as by `npm run commit`: the hook
  * lets the edit through, and a commit script that then refused the same file
  * would leave the work stranded with no channel to land it.
  */

@@ -24,9 +24,9 @@ const path = require("node:path");
 const { gitRead } = require("../../lib/git-readonly.cjs");
 const { INCONCLUSIVE, NOOP, PASS, cwdOf, deny } = require("../../lib/io.cjs");
 const { EDIT_TOOLS } = require("../../lib/edit-payload.cjs");
-
-/** Surfaces that may be edited on any branch: they configure the tooling, not the product. */
-const ALLOWLIST_RE = /^(?:CLAUDE\.md$|\.claude\/|memory\/|\.claude-plugin\/)/;
+// Single-sourced with `npm run commit`, which lets the same paths land on
+// `main`: an edit this rule allows must never be one the commit then refuses.
+const { HARNESS_PATH_RE: ALLOWLIST_RE } = require("../../../../scripts/lib/git-conventions.cjs");
 
 /**
  * Normalize a path for containment comparison, resolving aliases and links.
