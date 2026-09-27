@@ -44,6 +44,61 @@ const path = require("node:path");
 /** Repo root, derived from this file's location so the suite is portable. */
 const CWD = path.resolve(__dirname, "..", "..").replace(/\\/g, "/");
 
+/**
+ * Re-run this suite inside a detached worktree of HEAD and return its status.
+ *
+ * On `main`, `branch-protection` refuses every product edit before any content
+ * gate is consulted. The allow cases then fail, and — worse — the block cases
+ * pass for the wrong reason, so the suite would say nothing about the gates it
+ * exists to test. `release.mjs` runs it on `main`, so that is not an edge case.
+ *
+ * A detached HEAD is not a protected branch, which gives the content gates the
+ * verdict. The working-tree `.claude/` and `scripts/` are laid over the
+ * checkout because the suite is run right after editing a gate, and what has to
+ * be tested is that uncommitted edit, not the committed version. The live state
+ * directory stays behind: an open unlock window there would change verdicts.
+ *
+ * @returns {number} Exit status of the nested run; 1 when it could not start.
+ */
+function runInDetachedWorktree() {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gate-smoke-"));
+  const wt = path.join(tmp, "wt");
+  const git = (args) => spawnSync("git", args, { cwd: CWD, encoding: "utf8" });
+  const add = git(["worktree", "add", "--detach", "--quiet", wt, "HEAD"]);
+  if (add.status !== 0) {
+    process.stderr.write(`gate-smoke: could not create a worktree: ${add.stderr}`);
+    fs.rmSync(tmp, { force: true, recursive: true });
+    return 1;
+  }
+  try {
+    const state = path.join(CWD, ".claude", "hooks", "state");
+    for (const sub of [".claude", "scripts"]) {
+      fs.cpSync(path.join(CWD, sub), path.join(wt, sub), {
+        filter: (src) => path.resolve(src) !== path.resolve(state),
+        recursive: true,
+      });
+    }
+    const modules = path.join(CWD, "node_modules");
+    // "junction" is read on Windows only, where it needs no elevation.
+    if (fs.existsSync(modules)) fs.symlinkSync(modules, path.join(wt, "node_modules"), "junction");
+    process.stdout.write("gate-smoke: on a protected branch — running in a detached worktree\n");
+    const res = spawnSync(process.execPath, [path.join(wt, ".claude", "hooks", "gate-smoke.test.cjs")], {
+      stdio: "inherit",
+    });
+    return res.status ?? 1;
+  } finally {
+    git(["worktree", "remove", "--force", wt]);
+    fs.rmSync(tmp, { force: true, recursive: true });
+  }
+}
+
+{
+  const head = spawnSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: CWD, encoding: "utf8" });
+  if (["main", "master"].includes((head.stdout || "").trim())) process.exit(runInDetachedWorktree());
+}
+
 /** A token-shaped literal, assembled so it is unmistakably not a real one. */
 const FAKE_TOKEN = `ghp_${"a".repeat(36)}`;
 
